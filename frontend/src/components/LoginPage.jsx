@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './theme.css';
+import "./theme.css";
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -101,7 +101,7 @@ const LoginPage = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <a
-              href="api/auth/google/url"
+              href="http://localhost:8000/api/auth/google/url"
               className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors text-sm font-medium"
             >
               <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" />

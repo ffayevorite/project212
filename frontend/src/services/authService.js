@@ -1,10 +1,15 @@
-const API_URL = process.env.REACT_APP_API_URL;
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8000/api/auth';
 
 export const login = async (email, password) => {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
-  return response.json();
+  try {
+    const response = await axios.post('http://localhost:8000/api/auth/login', {
+      email,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.detail || 'Login failed';
+  }
 };

@@ -1,0 +1,70 @@
+.login-container {
+  --font-size: 16px;
+  --background: #ffffff; /* Light background */
+  --foreground: #000000; /* Dark text for contrast */
+  --card: #ffffff; /* Card background */
+  --card-foreground: #000000; /* Card text color */
+  --popover: #ffffff; /* Popover background */
+  --popover-foreground: #000000; /* Popover text color */
+  --primary: #030213; /* Primary color */
+  --primary-foreground: #ffffff; /* Primary text color */
+  --secondary: #f0f0f0; /* Secondary color */
+  --secondary-foreground: #030213; /* Secondary text color */
+  --muted: #ececf0; /* Muted background */
+  --muted-foreground: #717182; /* Muted text color */
+  --accent: #e9ebef; /* Accent color */
+  --accent-foreground: #030213; /* Accent text color */
+  --destructive: #d4183d; /* Destructive action color */
+  --destructive-foreground: #ffffff; /* Destructive text color */
+  --border: rgba(0, 0, 0, 0.1); /* Border color */
+  --input: transparent; /* Input background */
+  --input-background: #f3f3f5; /* Input background color */
+  --switch-background: #cbced4; /* Switch background color */
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: rgba(0, 0, 0, 0.2); /* Ring color */
+  --radius: 0.625rem; /* Border radius */
+}
+
+@layer base {
+  * {
+    box-sizing: border-box; /* Ensure consistent box sizing */
+  }
+  
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: var(--font-size);
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+  }
+  
+  h1, h2, h3, h4, p, label, button, input {
+    line-height: 1.5; /* Consistent line height */
+  }
+  
+  h1 {
+    font-size: 2rem; /* Adjusted size for h1 */
+    font-weight: var(--font-weight-medium);
+  }
+  
+  h2 {
+    font-size: 1.5rem; /* Adjusted size for h2 */
+    font-weight: var(--font-weight-medium);
+  }
+  
+  h3 {
+    font-size: 1.25rem; /* Adjusted size for h3 */
+    font-weight: var(--font-weight-medium);
+  }
+  
+  h4 {
+    font-size: 1rem; /* Adjusted size for h4 */
+    font-weight: var(--font-weight-medium);
+  }
+  
+  label, button, input {
+    font-size: 1rem; /* Standard font size for inputs and buttons */
+    font-weight: var(--font-weight-normal);
+  }
+}
