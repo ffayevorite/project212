@@ -1,6 +1,6 @@
-import { wrench } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Wrench } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,13 +11,14 @@ export function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <wrench className="text-blue-600" size={28} />
-            <span className="text-lg font-bold text-gray-900">
-              Equiply
-            </span>
+            <Wrench className="text-blue-600" size={28} />
+            <span className="text-lg font-bold text-gray-900">Equiply</span>
           </div>
           <div className="items-center gap-3">
-            <Link to="/login" className="px-5 py-2 text-gray-700 hover:text-blue-600 transition-colors">
+            <Link
+              to="/login"
+              className="px-5 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+            >
               Sign In
             </Link>
             <button className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
