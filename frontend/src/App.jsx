@@ -22,8 +22,8 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/auth-success" element={<AuthSuccess />} />
           <Route path="/auth-callback" element={<AuthCallback />} />
-          <Route path="/catalog" element={<Catalog />} />
           <Route path="/profile" element={<ProfileSettings />} />
+          <Route path="/catalog" element={<Catalog />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>

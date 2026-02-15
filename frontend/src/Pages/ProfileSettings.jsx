@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 import axios from "axios";
 import {
   User,
-  Mail,
-  Phone,
-  Building,
-  Save,
   Lock,
   ShieldCheck,
-  CreditCard,
   GraduationCap,
   Camera,
   Loader2,
+  Save,
+  AlertCircle,
 } from "lucide-react";
 
+// Helper Component for the Verified Badge
+const CheckBadge = () => (
+  <span className="h-5 w-5 bg-green-500 text-white rounded-full flex items-center justify-center text-[10px] ml-2">
+    ✓
+  </span>
+);
+
 export default function ProfileSettings() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
   const [provider, setProvider] = useState("email");
 
-  // State ข้อมูลส่วนตัว
+  // State: Personal Information
   const [profile, setProfile] = useState({
     first_name: "",
     last_name: "",
@@ -33,17 +39,18 @@ export default function ProfileSettings() {
     year_level: "",
   });
 
-  // State สำหรับ Password
+  // State: Password
   const [passwords, setPasswords] = useState({
     newPassword: "",
     confirmPassword: "",
   });
 
-  // State สำหรับ CMU Email Verify (OTP)
+  // State: CMU Email Verify (OTP)
   const [cmuEmail, setCmuEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [isCmuVerified, setIsCmuVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   // 1. Fetch Data
   useEffect(() => {
@@ -57,26 +64,41 @@ export default function ProfileSettings() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) throw new Error("No user");
+      if (!user) {
+        navigate("/login");
+        return;
+      }
 
       setUser(user);
       setProvider(user.app_metadata.provider || "email");
-      setCmuEmail(user.email.includes("@cmu.ac.th") ? user.email : "");
-      setIsCmuVerified(user.email.includes("@cmu.ac.th")); // เช็คเบื้องต้น
 
-      // ดึงข้อมูลจากตาราง profiles
+      // ตั้งค่าเริ่มต้น email ใน input (อำนวยความสะดวก user)
+      const isCmuEmailString = user.email?.endsWith("@cmu.ac.th");
+      setCmuEmail(isCmuEmailString ? user.email : "");
+
+      // ดึงข้อมูลจากตาราง profiles รวมถึงสถานะ cmu_verified
       let { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
+      if (error && error.code !== "PGRST116") throw error;
 
       if (data) {
-        setProfile(data);
+        setProfile({
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          student_id: data.student_id || "",
+          phone_number: data.phone_number || "",
+          backup_email: data.backup_email || "",
+          faculty: data.faculty || "",
+          department: data.department || "",
+          year_level: data.year_level || "",
+        });
+
+        // ใช้ค่าจาก Database เป็นหลัก
+        setIsCmuVerified(data.cmu_verified === true);
       }
     } catch (error) {
       console.error("Error loading user data!", error.message);
@@ -130,63 +152,90 @@ export default function ProfileSettings() {
     }
   };
 
-  // 4. CMU Email Verification Logic (OTP Simulation)
+  // 4. CMU Email Verification Logic
   const handleSendOtp = async () => {
     if (!cmuEmail.endsWith("@cmu.ac.th")) {
       alert("Please enter a valid @cmu.ac.th email address.");
       return;
     }
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    setVerifying(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
 
-    if (!session) {
-      alert("You are not logged in");
-      return;
-    }
-
-    await axios.post(
-      "http://localhost:8000/api/auth/send-otp",
-      { email: cmuEmail },
-      {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
+      await axios.post(
+        "http://localhost:8000/api/auth/send-otp",
+        { email: cmuEmail },
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         },
-      },
-    );
+      );
 
-    alert("OTP sent successfully");
-    setOtpSent(true);
+      alert(`OTP has been sent to ${cmuEmail}`);
+      setOtpSent(true);
+    } catch (error) {
+      console.error("Send OTP Error:", error);
+      const msg = error.response?.data?.detail || error.message;
+      alert(`Failed to send OTP: ${msg}`);
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const handleVerifyOtp = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      alert("You are not logged in");
+    if (otpCode.length !== 6) {
+      alert("Please enter a 6-digit code.");
       return;
     }
 
-    await axios.post(
-      "http://localhost:8000/api/auth/verify-otp",
-      { email: cmuEmail, code: otpCode },
-      {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      },
-    );
+    setVerifying(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
 
-    alert("Verified successfully");
-    setIsCmuVerified(true);
+      // ยิงไปหา Backend (Backend จะเป็นคนแก้ DB profiles -> cmu_verified = true)
+      await axios.post(
+        "http://localhost:8000/api/auth/verify-otp",
+        { email: cmuEmail, code: otpCode },
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        },
+      );
+
+      // ถ้า Verify ผ่าน Backend แล้ว
+      // 1. อัปเดต Email ใน Supabase Auth
+      const { error: supabaseError } = await supabase.auth.updateUser({
+        email: cmuEmail,
+      });
+      if (supabaseError) throw supabaseError;
+
+      alert("Email verified successfully!");
+
+      // 2. อัปเดต State หน้าเว็บทันที
+      setIsCmuVerified(true);
+      setOtpSent(false);
+      setOtpCode("");
+    } catch (error) {
+      console.error("Verify OTP Error:", error);
+      const msg = error.response?.data?.detail || error.message;
+      alert(`Verification failed: ${msg}`);
+    } finally {
+      setVerifying(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen bg-gray-50">
         <Loader2 className="animate-spin text-blue-600" size={48} />
       </div>
     );
@@ -200,11 +249,11 @@ export default function ProfileSettings() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left Column: Navigation / Quick Info */}
+        {/* Left Column: Avatar */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-            <div className="relative inline-block">
-              <div className="w-24 h-24 rounded-full bg-blue-100 mx-auto flex items-center justify-center text-blue-600 text-3xl font-bold overflow-hidden">
+            <div className="relative inline-block mb-4">
+              <div className="w-24 h-24 rounded-full bg-blue-100 mx-auto flex items-center justify-center text-blue-600 text-3xl font-bold overflow-hidden border-4 border-white shadow-sm">
                 {user?.user_metadata?.avatar_url ? (
                   <img
                     src={user.user_metadata.avatar_url}
@@ -212,25 +261,29 @@ export default function ProfileSettings() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  profile.first_name?.[0] || user?.email?.[0]?.toUpperCase()
+                  (
+                    profile.first_name?.[0] ||
+                    user?.email?.[0] ||
+                    "U"
+                  ).toUpperCase()
                 )}
               </div>
-              <button className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+              <button className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md">
                 <Camera size={14} />
               </button>
             </div>
-            <h2 className="mt-4 text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-bold text-gray-900">
               {profile.first_name} {profile.last_name}
             </h2>
-            <p className="text-sm text-gray-500">{user.email}</p>
-            <div className="mt-3 flex justify-center">
+            <p className="text-sm text-gray-500 mb-3">{user.email}</p>
+            <div className="flex justify-center">
               {isCmuVerified ? (
-                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                  <ShieldCheck size={12} /> CMU Verified
+                <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full flex items-center gap-1 font-medium">
+                  <ShieldCheck size={12} /> CMU Student
                 </span>
               ) : (
-                <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                  Wait for Verification
+                <span className="bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full flex items-center gap-1 font-medium">
+                  <AlertCircle size={12} /> Not Verified
                 </span>
               )}
             </div>
@@ -239,9 +292,9 @@ export default function ProfileSettings() {
 
         {/* Right Column: Forms */}
         <div className="md:col-span-2 space-y-8">
-          {/* 1. Personal Information Section */}
+          {/* 1. Academic & Personal Info */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2 border-b pb-4">
               <GraduationCap className="text-blue-600" size={24} />
               Academic & Personal Info
             </h3>
@@ -254,7 +307,7 @@ export default function ProfileSettings() {
                   </label>
                   <input
                     type="text"
-                    value={profile.first_name || ""}
+                    value={profile.first_name}
                     onChange={(e) =>
                       setProfile({ ...profile, first_name: e.target.value })
                     }
@@ -268,7 +321,7 @@ export default function ProfileSettings() {
                   </label>
                   <input
                     type="text"
-                    value={profile.last_name || ""}
+                    value={profile.last_name}
                     onChange={(e) =>
                       setProfile({ ...profile, last_name: e.target.value })
                     }
@@ -285,7 +338,7 @@ export default function ProfileSettings() {
                   </label>
                   <input
                     type="text"
-                    value={profile.student_id || ""}
+                    value={profile.student_id}
                     onChange={(e) =>
                       setProfile({ ...profile, student_id: e.target.value })
                     }
@@ -298,11 +351,11 @@ export default function ProfileSettings() {
                     Year Level
                   </label>
                   <select
-                    value={profile.year_level || ""}
+                    value={profile.year_level}
                     onChange={(e) =>
                       setProfile({ ...profile, year_level: e.target.value })
                     }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                   >
                     <option value="">Select Year</option>
                     <option value="1">Year 1</option>
@@ -321,7 +374,7 @@ export default function ProfileSettings() {
                   </label>
                   <input
                     type="text"
-                    value={profile.faculty || ""}
+                    value={profile.faculty}
                     onChange={(e) =>
                       setProfile({ ...profile, faculty: e.target.value })
                     }
@@ -335,7 +388,7 @@ export default function ProfileSettings() {
                   </label>
                   <input
                     type="text"
-                    value={profile.department || ""}
+                    value={profile.department}
                     onChange={(e) =>
                       setProfile({ ...profile, department: e.target.value })
                     }
@@ -352,7 +405,7 @@ export default function ProfileSettings() {
                   </label>
                   <input
                     type="tel"
-                    value={profile.phone_number || ""}
+                    value={profile.phone_number}
                     onChange={(e) =>
                       setProfile({ ...profile, phone_number: e.target.value })
                     }
@@ -366,7 +419,7 @@ export default function ProfileSettings() {
                   </label>
                   <input
                     type="email"
-                    value={profile.backup_email || ""}
+                    value={profile.backup_email}
                     onChange={(e) =>
                       setProfile({ ...profile, backup_email: e.target.value })
                     }
@@ -380,7 +433,7 @@ export default function ProfileSettings() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
                 >
                   {saving ? (
                     <Loader2 className="animate-spin" size={18} />
@@ -393,101 +446,113 @@ export default function ProfileSettings() {
             </form>
           </div>
 
-          {/* 2. Account Security Section */}
+          {/* 2. Security Settings */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-8">
-            <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 border-b pb-4">
               <Lock className="text-blue-600" size={24} />
               Security Settings
             </h3>
 
             {/* Password Management */}
-            <div className="border-b border-gray-100 pb-6">
+            <div>
               <h4 className="text-md font-medium text-gray-800 mb-3">
                 {provider === "google" ? "Create Password" : "Change Password"}
               </h4>
               <p className="text-sm text-gray-500 mb-4">
                 {provider === "google"
-                  ? "Since you logged in via Google, you can create a password to login with email/password as well."
+                  ? "Create a password to enable email/password login."
                   : "Update your password to keep your account secure."}
               </p>
 
               <form
                 onSubmit={handlePasswordUpdate}
-                className="space-y-3 max-w-md"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end"
               >
-                <div>
-                  <input
-                    type="password"
-                    placeholder="New Password (min 6 chars)"
-                    value={passwords.newPassword}
-                    onChange={(e) =>
-                      setPasswords({
-                        ...passwords,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
+                <input
+                  type="password"
+                  placeholder="New Password (min 6 chars)"
+                  value={passwords.newPassword}
+                  onChange={(e) =>
+                    setPasswords({ ...passwords, newPassword: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <input
+                  type="password"
+                  placeholder="Confirm New Password"
+                  value={passwords.confirmPassword}
+                  onChange={(e) =>
+                    setPasswords({
+                      ...passwords,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <div className="sm:col-span-2">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors text-sm font-medium"
+                  >
+                    Update Password
+                  </button>
                 </div>
-                <div>
-                  <input
-                    type="password"
-                    placeholder="Confirm New Password"
-                    value={passwords.confirmPassword}
-                    onChange={(e) =>
-                      setPasswords({
-                        ...passwords,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors text-sm"
-                >
-                  Update Password
-                </button>
               </form>
             </div>
 
             {/* CMU Email Verification */}
-            <div>
+            <div className="pt-6 border-t border-gray-100">
               <h4 className="text-md font-medium text-gray-800 mb-3 flex items-center gap-2">
                 Verify CMU Email
                 {isCmuVerified && <CheckBadge />}
               </h4>
-              <p className="text-sm text-gray-500 mb-4">
-                Connect your academic email (@cmu.ac.th) to access student
-                privileges.
-              </p>
 
-              {!isCmuVerified ? (
-                <div className="max-w-md space-y-3">
-                  <div className="flex gap-2">
+              {isCmuVerified ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 text-green-800">
+                  <div className="bg-green-200 p-2 rounded-full">
+                    <ShieldCheck size={20} className="text-green-700" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Account Verified</p>
+                    <p className="text-xs text-green-700 opacity-80">
+                      Linked to {user.email}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Connect your academic email (@cmu.ac.th) to access student
+                    privileges.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="email"
                       value={cmuEmail}
                       onChange={(e) => setCmuEmail(e.target.value)}
                       placeholder="student@cmu.ac.th"
-                      className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      disabled={otpSent}
+                      className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                      disabled={otpSent || verifying}
                     />
                     {!otpSent && (
                       <button
                         onClick={handleSendOtp}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap text-sm"
+                        disabled={verifying}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap text-sm font-medium transition-colors disabled:bg-blue-400 flex items-center gap-2"
                       >
-                        Send OTP
+                        {verifying ? (
+                          <Loader2 className="animate-spin" size={16} />
+                        ) : (
+                          "Send OTP"
+                        )}
                       </button>
                     )}
                   </div>
 
-                  {/* OTP Input Section */}
                   {otpSent && (
-                    <div className="animate-in fade-in slide-in-from-top-2">
-                      <label className="block text-sm text-gray-600 mb-1">
+                    <div className="animate-in fade-in slide-in-from-top-2 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                      <label className="block text-sm text-blue-800 mb-2 font-medium">
                         Enter 6-digit code sent to your email
                       </label>
                       <div className="flex gap-2">
@@ -496,33 +561,33 @@ export default function ProfileSettings() {
                           maxLength="6"
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
-                          className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-center tracking-widest font-mono text-lg"
+                          className="flex-1 px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-center tracking-widest font-mono text-lg"
+                          placeholder="000000"
+                          disabled={verifying}
                         />
                         <button
                           onClick={handleVerifyOtp}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap text-sm"
+                          disabled={verifying}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap text-sm font-medium transition-colors flex items-center gap-2 disabled:bg-green-400"
                         >
-                          Verify Code
+                          {verifying ? (
+                            <Loader2 className="animate-spin" size={16} />
+                          ) : (
+                            "Verify"
+                          )}
                         </button>
                       </div>
                       <button
-                        onClick={() => setOtpSent(false)}
-                        className="text-xs text-blue-600 hover:underline mt-2"
+                        onClick={() => {
+                          setOtpSent(false);
+                          setOtpCode("");
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline mt-3 block"
                       >
-                        Change email or Resend
+                        &larr; Change email or Resend
                       </button>
                     </div>
                   )}
-                </div>
-              ) : (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3 text-green-700">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <ShieldCheck size={20} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">Verified Account</p>
-                    <p className="text-xs">{user.email}</p>
-                  </div>
                 </div>
               )}
             </div>
@@ -532,9 +597,3 @@ export default function ProfileSettings() {
     </div>
   );
 }
-
-const CheckBadge = () => (
-  <span className="h-5 w-5 bg-green-500 text-white rounded-full flex items-center justify-center text-[10px]">
-    ✓
-  </span>
-);
