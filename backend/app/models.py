@@ -76,7 +76,8 @@ class UserResponse(BaseModel):
     name: str = Field(..., description="User full name")
     created_at: Optional[datetime] = Field(None, description="Account creation timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
-    
+    provider: str = Field(..., description="Login provider (email/google)")
+    is_verified: bool = Field(..., description="Email verification status")
     class Config:
         from_attributes = True
         json_schema_extra = {
@@ -85,7 +86,9 @@ class UserResponse(BaseModel):
                 "email": "john@example.com",
                 "name": "John Doe",
                 "created_at": "2024-01-15T10:30:00.000Z",
-                "updated_at": "2024-01-15T10:30:00.000Z"
+                "updated_at": "2024-01-15T10:30:00.000Z",
+                "provider": "email",
+                "is_verified": True
             }
         }
 
@@ -300,3 +303,12 @@ class PasswordChange(BaseModel):
                 "new_password": "newSecurePassword456"
             }
         }
+
+from pydantic import BaseModel, EmailStr
+
+class SendOtpRequest(BaseModel):
+    email: EmailStr
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    code: str

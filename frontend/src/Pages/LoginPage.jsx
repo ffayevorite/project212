@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom"; // เพิ่ม useNavigate และ Link
+import { supabase } from "../utils/supabaseClient"; // เรียกใช้ Supabase Client
 import "../css/login.css";
 
 const LoginPage = () => {
@@ -7,9 +9,51 @@ const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e) => {
+  // เพิ่ม State สำหรับจัดการ Loading และ Error
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login submitted:", { email, password, rememberMe });
+    setLoading(true);
+    setError(null); // เคลียร์ Error เก่า
+
+    try {
+      // 1. ส่งข้อมูลไป Login กับ Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) throw error;
+
+      // 2. ถ้าสำเร็จ ให้เด้งไปหน้า Dashboard หรือ Home
+      console.log("Login successful:", data);
+      navigate("/");
+    } catch (err) {
+      // 3. ถ้าพลาด ให้แสดง Error Msg
+      setError(err.message || "Failed to sign in");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ฟังก์ชันสำหรับ Google Login ผ่าน Supabase โดยตรง
+  const handleGoogleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin, // ให้เด้งกลับมาที่หน้าเว็บนี้หลังจาก Google OK
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -27,6 +71,16 @@ const LoginPage = () => {
             </p>
           </div>
 
+          {/* ส่วนแสดง Error Message */}
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center gap-2">
+              <i className="fa-solid fa-circle-exclamation"></i>
+              {error === "Invalid login credentials"
+                ? "Invalid email or password."
+                : error}
+            </div>
+          )}
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
@@ -43,6 +97,8 @@ const LoginPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-[var(--input-background)] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition-all"
                   placeholder="you@example.com"
+                  required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -62,11 +118,14 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-10 py-2 bg-[var(--input-background)] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition-all"
                   placeholder="Enter your password"
+                  required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  disabled={loading}
                 >
                   <i
                     className={
@@ -89,16 +148,29 @@ const LoginPage = () => {
                 />
                 <span className="text-muted-foreground">Remember me</span>
               </label>
-              <a href="#" className="text-blue-600 hover:underline font-medium">
+              <Link
+                to="/forgot-password"
+                className="text-blue-600 hover:underline font-medium"
+              >
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-all active:scale-[0.98]"
+              disabled={loading}
+              className={`w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-all active:scale-[0.98] ${
+                loading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              Sign In
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <i className="fa-solid fa-circle-notch fa-spin"></i> Signing
+                  In...
+                </span>
+              ) : (
+                "Sign In"
+              )}
             </button>
           </form>
 
@@ -114,8 +186,9 @@ const LoginPage = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <a
-              href="http://localhost:8000/api/auth/google/url"
+            <button
+              onClick={handleGoogleLogin}
+              type="button"
               className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors text-sm font-medium"
             >
               <img
@@ -124,7 +197,7 @@ const LoginPage = () => {
                 alt="Google"
               />
               Google
-            </a>
+            </button>
             <button className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors text-sm font-medium">
               <i className="fa-brands fa-github"></i>
               GitHub
@@ -133,9 +206,12 @@ const LoginPage = () => {
 
           <p className="text-center mt-8 text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <a href="#" className="text-blue-600 hover:underline font-medium">
+            <Link
+              to="/register"
+              className="text-blue-600 hover:underline font-medium"
+            >
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </div>

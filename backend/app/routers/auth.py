@@ -1,293 +1,245 @@
+# app/routers/auth.py
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import datetime, timedelta
-import jwt
-from passlib.context import CryptContext
-import os
-from uuid import uuid4
-import httpx
+from gotrue.errors import AuthApiError # ต้องใช้จับ Error ของ Supabase
 
 from app.database import get_supabase
-from app.models import UserCreate, UserLogin, UserResponse, Token
+from app.models import UserCreate, UserLogin, UserResponse, SendOtpRequest, VerifyOtpRequest
+
+from datetime import datetime, timedelta
+import random
+
+from app.utils.email import send_otp_email
+
 
 router = APIRouter()
 security = HTTPBearer()
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# JWT settings
-SECRET_KEY = os.getenv("JWT_SECRET")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 7
-
-# Helper functions
-def hash_password(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against a hash"""
-    return pwd_context.verify(plain_password, hashed_password)
-
-def create_access_token(user_id: str) -> str:
-    """Create JWT access token"""
-    expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
-    to_encode = {
-        "sub": user_id,
-        "exp": expire
-    }
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Verify JWT token and return user_id"""
+# Helper to verify token with Supabase
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    supabase = get_supabase()
+    token = credentials.credentials
+    
     try:
-        token = credentials.credentials
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        # ส่ง Token ไปให้ Supabase ตรวจสอบว่าถูกต้องและยังไม่หมดอายุ
+        user = supabase.auth.get_user(token)
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
             )
-        return user_id
-    except jwt.ExpiredSignatureError:
+        return user.user
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired"
-        )
-    except jwt.JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-# Routes
+# ==========================================
+# Auth Routes (Native Supabase)
+# ==========================================
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate):
-    """Register a new user"""
+    """Register using Supabase Auth"""
     supabase = get_supabase()
     
     try:
-        # Check if user already exists
-        existing_user = supabase.table("users").select("*").eq("email", user_data.email).execute()
-        
-        if existing_user.data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this email already exists"
-            )
-        
-        # Hash password
-        hashed_password = hash_password(user_data.password)
-        
-        # Create user in Supabase
-        user_id = str(uuid4())
-        new_user = {
-            "id": user_id,
+        # ส่งข้อมูลไปสร้าง User ใน Supabase Auth
+        # เราเก็บ 'name' ไว้ใน user_metadata
+        auth_response = supabase.auth.sign_up({
             "email": user_data.email,
-            "name": user_data.name,
-            "password": hashed_password,
-            "created_at": datetime.utcnow().isoformat()
-        }
-        
-        result = supabase.table("users").insert(new_user).execute()
-        
-        if not result.data:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create user"
-            )
-        
-        # Generate token
-        token = create_access_token(user_id)
-        
+            "password": user_data.password,
+            "options": {
+                "data": {
+                    "full_name": user_data.name
+                }
+            }
+        })
+
+        # กรณีที่ Supabase ตั้งค่าให้ต้องยืนยัน Email (Default)
+        # session จะเป็น None จนกว่า user จะกดลิงก์ในเมล
+        if auth_response.user and not auth_response.session:
+            return {
+                "success": True,
+                "message": "Registration successful. Please check your email to confirm your account.",
+                "user": {
+                    "id": auth_response.user.id,
+                    "email": auth_response.user.email,
+                    "name": auth_response.user.user_metadata.get("full_name")
+                }
+            }
+
+        # กรณีไม่ต้องยืนยันเมล (Auto Confirm)
         return {
             "success": True,
-            "token": token,
+            "token": auth_response.session.access_token,
             "user": {
-                "id": user_id,
-                "email": user_data.email,
-                "name": user_data.name
+                "id": auth_response.user.id,
+                "email": auth_response.user.email,
+                "name": auth_response.user.user_metadata.get("full_name")
             }
         }
-        
-    except HTTPException:
-        raise
+
+    except AuthApiError as e:
+        raise HTTPException(status_code=400, detail=e.message)
     except Exception as e:
-        print(f"Registration error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/login")
 async def login(credentials: UserLogin):
-    """Login with email and password"""
+    """Login using Supabase Auth"""
     supabase = get_supabase()
     
     try:
-        # Find user by email
-        result = supabase.table("users").select("*").eq("email", credentials.email).execute()
-        
-        if not result.data:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
-            )
-        
-        user = result.data[0]
-        
-        # Verify password
-        if not verify_password(credentials.password, user["password"]):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
-            )
-        
-        # Generate token
-        token = create_access_token(user["id"])
-        
+        auth_response = supabase.auth.sign_in_with_password({
+            "email": credentials.email,
+            "password": credentials.password
+        })
+
         return {
             "success": True,
-            "token": token,
+            "token": auth_response.session.access_token,
             "user": {
-                "id": user["id"],
-                "email": user["email"],
-                "name": user["name"]
+                "id": auth_response.user.id,
+                "email": auth_response.user.email,
+                "name": auth_response.user.user_metadata.get("full_name")
             }
         }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Login error: {e}")
+
+    except AuthApiError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/logout")
-async def logout():
-    """Logout user (client should remove token)"""
+async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Logout from Supabase"""
+    supabase = get_supabase()
+    token = credentials.credentials
+    
+    try:
+        supabase.auth.sign_out(token)
+        return {"success": True, "message": "Logged out successfully"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/me")
+async def get_my_profile(user = Depends(get_current_user)):
+    """Get current user profile from Supabase Token"""
     return {
-        "success": True,
-        "message": "Logged out successfully"
+        "id": user.id,
+        "email": user.email,
+        "name": user.user_metadata.get("full_name"),
+        "created_at": user.created_at,
+        "last_sign_in": user.last_sign_in_at,
+        "provider": user.app_metadata.get("provider", "email"),
+        "is_verified": user.email_confirmed_at is not None
     }
-
-@router.get("/me", response_model=UserResponse)
-async def get_current_user(user_id: str = Depends(verify_token)):
-    """Get current user profile (protected route)"""
-    supabase = get_supabase()
     
-    try:
-        # Get user from database
-        result = supabase.table("users").select("id, email, name, created_at").eq("id", user_id).execute()
-        
-        if not result.data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-        
-        user = result.data[0]
-        
-        return {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "created_at": user.get("created_at")
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Get user error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get user"
-        )
 
-@router.get("/users")
-async def get_all_users(user_id: str = Depends(verify_token)):
-    """Get all users (protected route - for testing)"""
-    supabase = get_supabase()
-    
-    try:
-        result = supabase.table("users").select("id, email, name, created_at").execute()
-        
-        return {
-            "success": True,
-            "users": result.data
-        }
-        
-    except Exception as e:
-        print(f"Get users error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get users"
-        )
-
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"
+# ==========================================
+# Google OAuth (via Supabase)
+# ==========================================
 
 @router.get("/google/url")
 async def get_google_auth_url():
-    scope = "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
-    url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&response_type=code&scope={scope}"
-
-    return RedirectResponse(url=url)
-
-@router.get("/google/callback")
-async def google_callback(code: str):
+    """Get Google Login URL from Supabase"""
     supabase = get_supabase()
+    
+    # Supabase จัดการเรื่อง URL และ State ให้
+    # redirect_to คือหน้าที่ Frontend จะรับหลังจาก Login สำเร็จ
+    res = supabase.auth.sign_in_with_oauth({
+        "provider": "google",
+        "options": {
+            "redirect_to": "http://localhost:3000/auth/callback" 
+        }
+    })
+    
+    if res.url:
+        return RedirectResponse(url=res.url)
+    
+    raise HTTPException(status_code=500, detail="Could not generate OAuth URL")
+
+# หมายเหตุ: สำหรับ Supabase Auth ปกติแล้ว OAuth Callback 
+# จะเด้งกลับไปที่ Frontend (localhost:3000) โดยตรง พร้อม Hash (#access_token=...)
+# ดังนั้น Backend ไม่จำเป็นต้องมี route /callback ยกเว้นจะทำ PKCE Flow ขั้นสูง
+
+
+
+@router.post("/send-otp")
+async def send_otp(
+    data: SendOtpRequest,
+    current_user = Depends(get_current_user)
+):
+    if not data.email.endswith("@cmu.ac.th"):
+        raise HTTPException(status_code=400, detail="Invalid CMU email")
+
+    supabase = get_supabase()
+
+    # สร้าง OTP 6 หลัก
+    otp_code = str(random.randint(100000, 999999))
+
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
+
+    # บันทึก OTP ลง DB
+    supabase.table("email_otps").insert({
+        "user_id": current_user.id,
+        "email": data.email,
+        "otp_code": otp_code,
+        "expires_at": expires_at.isoformat()
+    }).execute()
+
+    # ส่งเมล
     try:
-        async with httpx.AsyncClient() as client:
-            # 1. แลก code
-            token_url = "https://oauth2.googleapis.com/token"
-            data = {
-                "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            }
-            token_res = await client.post(token_url, data=data)
-            token_data = token_res.json()
-            
-            if "error" in token_data:
-                print(f"Google Token Error: {token_data}") # ดูใน Log
-                raise HTTPException(status_code=400, detail=token_data.get("error_description"))
-            
-            access_token = token_data.get("access_token")
-
-            user_info_res = await client.get(
-                "https://www.googleapis.com/oauth2/v1/userinfo",
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-            user_info = user_info_res.json()
-            email = user_info.get("email")
-            name = user_info.get("name")
-
-        existing_db_user = supabase.table("users").select("*").eq("email", email).execute()
-
-        if not existing_db_user.data:
-            user_id = str(uuid4()) 
-            new_user = {
-                "id": user_id,
-                "email": email,
-                "name": name,
-                "created_at": datetime.utcnow().isoformat()
-            }
-            supabase.table("users").insert(new_user).execute()
-        else:
-            user_id = existing_db_user.data[0]["id"]
-
-        internal_token = create_access_token(user_id)
-        return RedirectResponse(url=f"http://localhost:3000/auth-success?token={internal_token}")
+        send_otp_email(data.email, otp_code)
     except Exception as e:
-        print(f"FULL ERROR DEBUG: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print("EMAIL ERROR:", str(e))
+        raise HTTPException(status_code=500, detail="Failed to send email")
+
+    return {"success": True, "message": "OTP sent"}
+
+
+@router.post("/verify-otp")
+async def verify_otp(
+    data: VerifyOtpRequest,
+    current_user = Depends(get_current_user)
+):
+    supabase = get_supabase()
+
+    result = supabase.table("email_otps") \
+        .select("*") \
+        .eq("user_id", current_user.id) \
+        .eq("email", data.email) \
+        .eq("otp_code", data.code) \
+        .eq("is_used", False) \
+        .execute()
+
+    if not result.data:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    otp_record = result.data[0]
+
+    if datetime.fromisoformat(otp_record["expires_at"]) < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    supabase.table("email_otps") \
+        .update({"is_used": True}) \
+        .eq("id", otp_record["id"]) \
+        .execute()
+
+    supabase.table("profiles") \
+        .update({"cmu_verified": True}) \
+        .eq("id", current_user.id) \
+        .execute()
+
+    return {"success": True, "message": "Email verified"}
