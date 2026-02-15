@@ -9,36 +9,106 @@ import {
   GraduationCap,
   LayoutGrid,
   ChevronDown,
-  ShieldCheck, // เพิ่ม icon
-  AlertCircle, // เพิ่ม icon
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [user, setUser] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
-  // 1. เช็คสถานะ Auth แบบ Realtime
+  // --- 1. ฟังก์ชันดึงค่าจาก DB ---
+  const fetchProfileStatus = async (userId) => {
+    // console.log("Fetching status for:", userId); // Debug
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("cmu_verified")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error.message);
+        return;
+      }
+
+      if (data) {
+        // console.log("Status from DB:", data.cmu_verified); // Debug
+        setIsVerified(data.cmu_verified === true);
+      }
+    } catch (error) {
+      console.error("Fetch Error:", error);
+    }
+  };
+
+  // --- 2. Effect หลัก: จัดการ Auth และ Realtime ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    let profileSubscription = null;
 
+    // 2.1 เช็ค Session ปัจจุบัน
+    const initializeSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        // ดึงค่าครั้งแรก
+        fetchProfileStatus(currentUser.id);
+
+        // 2.2 สมัคร Realtime Listener (ฟังการแก้ข้อมูลในตาราง profiles)
+        profileSubscription = supabase
+          .channel("public:profiles")
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "profiles",
+              filter: `id=eq.${currentUser.id}`, // ฟังเฉพาะ ID ของเรา
+            },
+            (payload) => {
+              // console.log("Realtime Update!", payload); // Debug
+              setIsVerified(payload.new.cmu_verified === true);
+            },
+          )
+          .subscribe();
+      }
+    };
+
+    initializeSession();
+
+    // 2.3 ฟัง Login/Logout Event
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      data: { subscription: authListener },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        fetchProfileStatus(currentUser.id);
+      } else {
+        setIsVerified(false);
+        setIsProfileOpen(false);
+        setIsMenuOpen(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup function
+    return () => {
+      authListener.unsubscribe();
+      if (profileSubscription) supabase.removeChannel(profileSubscription);
+    };
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    setIsMenuOpen(false);
     navigate("/login");
   };
 
@@ -47,14 +117,11 @@ export function Header() {
       ? "text-blue-600 bg-blue-50"
       : "text-gray-600 hover:text-blue-600 hover:bg-gray-50";
 
-  // เช็คสถานะ Verify (ถ้าอีเมลเป็น @cmu.ac.th ถือว่า Verify แล้ว)
-  const isVerified = user?.email?.endsWith("@cmu.ac.th");
-
   return (
     <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* Logo Section */}
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="bg-blue-600 text-white p-1.5 rounded-lg group-hover:bg-blue-700 transition-colors">
               <GraduationCap size={24} />
@@ -64,7 +131,7 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Nav */}
           <div className="hidden md:flex space-x-1 items-center">
             <Link
               to="/"
@@ -80,31 +147,25 @@ export function Header() {
             </Link>
           </div>
 
-          {/* Right Section (Auth Buttons) */}
+          {/* Right Section */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
-              // State: Logged In
               <div className="relative">
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                   className="flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-full border border-gray-200 hover:shadow-md transition-all cursor-pointer bg-white"
                 >
-                  {/* Text Info */}
                   <div className="flex flex-col items-end mr-1">
                     <span className="text-xs font-semibold text-gray-700 leading-tight">
-                      {user.user_metadata?.first_name || "Student"}
+                      {user.user_metadata?.name.split(" ")[0] || "Student"}
                     </span>
-                    {/* Status Text */}
                     <span
-                      className={`text-[10px] leading-tight font-medium ${
-                        isVerified ? "text-green-600" : "text-yellow-600"
-                      }`}
+                      className={`text-[10px] leading-tight font-medium ${isVerified ? "text-green-600" : "text-yellow-600"}`}
                     >
-                      {isVerified ? "Verified Student" : "Unverified"}
+                      {isVerified ? "Verified" : "Unverified"}
                     </span>
                   </div>
 
-                  {/* Avatar & Badge Wrapper */}
                   <div className="relative">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 overflow-hidden border border-gray-100">
                       {user.user_metadata?.avatar_url ? (
@@ -117,8 +178,6 @@ export function Header() {
                         <User size={16} />
                       )}
                     </div>
-
-                    {/* Verification Badge Icon */}
                     <div
                       className={`absolute -bottom-1 -right-1 rounded-full border-2 border-white p-[2px] ${isVerified ? "bg-green-500" : "bg-yellow-400"}`}
                     >
@@ -129,13 +188,12 @@ export function Header() {
                       )}
                     </div>
                   </div>
-
                   <ChevronDown size={14} className="text-gray-400" />
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Dropdown */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg py-1 border border-gray-100 animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg py-1 border border-gray-100 animate-in fade-in slide-in-from-top-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-50">
                       <p className="text-sm font-medium text-gray-900">
                         Signed in as
@@ -144,7 +202,6 @@ export function Header() {
                         {user.email}
                       </p>
                     </div>
-
                     <Link
                       to="/profile"
                       onClick={() => setIsProfileOpen(false)}
@@ -155,7 +212,6 @@ export function Header() {
                         <span className="ml-auto w-2 h-2 rounded-full bg-yellow-400"></span>
                       )}
                     </Link>
-
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -166,7 +222,6 @@ export function Header() {
                 )}
               </div>
             ) : (
-              // State: Logged Out
               <div className="flex items-center gap-3">
                 <Link
                   to="/login"
@@ -184,7 +239,7 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Btn */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -196,7 +251,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
+      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 animate-in slide-in-from-top-5">
           <div className="px-4 pt-2 pb-6 space-y-1">
@@ -214,7 +269,6 @@ export function Header() {
             >
               Catalog
             </Link>
-
             <div className="border-t border-gray-100 my-2 pt-2">
               {user ? (
                 <>
@@ -227,7 +281,6 @@ export function Header() {
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                         <User size={16} />
                       </div>
-                      {/* Mobile Badge */}
                       <div
                         className={`absolute -bottom-1 -right-1 rounded-full border-2 border-white p-[2px] ${isVerified ? "bg-green-500" : "bg-yellow-400"}`}
                       >

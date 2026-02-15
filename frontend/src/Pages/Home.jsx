@@ -6,12 +6,10 @@ import { Header } from "../components/Header";
 export default function Home() {
   return (
     <div className="size-full">
-      <Header />
       <main>
         <About />
         <HowItWorks />
       </main>
-      <Footer />
     </div>
   );
 }

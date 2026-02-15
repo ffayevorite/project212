@@ -11,6 +11,7 @@ import {
   Loader2,
   Save,
   AlertCircle,
+  Upload,
 } from "lucide-react";
 
 // Helper Component for the Verified Badge
@@ -22,10 +23,14 @@ const CheckBadge = () => (
 
 export default function ProfileSettings() {
   const navigate = useNavigate();
+
+  // --- States ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false); // โหลดตอนอัปรูป
   const [user, setUser] = useState(null);
   const [provider, setProvider] = useState("email");
+  const [avatarUrl, setAvatarUrl] = useState(null); // URL รูปโปรไฟล์
 
   // State: Personal Information
   const [profile, setProfile] = useState({
@@ -52,7 +57,7 @@ export default function ProfileSettings() {
   const [isCmuVerified, setIsCmuVerified] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
-  // 1. Fetch Data
+  // --- 1. Fetch Data on Mount ---
   useEffect(() => {
     getProfile();
   }, []);
@@ -72,11 +77,14 @@ export default function ProfileSettings() {
       setUser(user);
       setProvider(user.app_metadata.provider || "email");
 
-      // ตั้งค่าเริ่มต้น email ใน input (อำนวยความสะดวก user)
+      // ดึงรูปจาก Metadata
+      setAvatarUrl(user.user_metadata?.avatar_url || null);
+
+      // ตั้งค่าเริ่มต้น email ใน input
       const isCmuEmailString = user.email?.endsWith("@cmu.ac.th");
       setCmuEmail(isCmuEmailString ? user.email : "");
 
-      // ดึงข้อมูลจากตาราง profiles รวมถึงสถานะ cmu_verified
+      // ดึงข้อมูลจากตาราง profiles
       let { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -107,7 +115,50 @@ export default function ProfileSettings() {
     }
   };
 
-  // 2. Update Profile Data
+  // --- 2. Upload Avatar Function ---
+  const uploadAvatar = async (event) => {
+    try {
+      setUploading(true);
+
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error("You must select an image to upload.");
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // 1. Upload to Supabase Storage (Bucket: avatars)
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Get Public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+      // 3. Update User Metadata
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl },
+      });
+
+      if (updateError) throw updateError;
+
+      // 4. Update State
+      setAvatarUrl(publicUrl);
+      alert("Avatar updated successfully!");
+    } catch (error) {
+      alert("Error uploading avatar: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // --- 3. Update Profile Data ---
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -127,7 +178,7 @@ export default function ProfileSettings() {
     }
   };
 
-  // 3. Update / Create Password
+  // --- 4. Update Password ---
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
     if (passwords.newPassword !== passwords.confirmPassword) {
@@ -152,7 +203,7 @@ export default function ProfileSettings() {
     }
   };
 
-  // 4. CMU Email Verification Logic
+  // --- 5. OTP Logic ---
   const handleSendOtp = async () => {
     if (!cmuEmail.endsWith("@cmu.ac.th")) {
       alert("Please enter a valid @cmu.ac.th email address.");
@@ -170,9 +221,7 @@ export default function ProfileSettings() {
         "http://localhost:8000/api/auth/send-otp",
         { email: cmuEmail },
         {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { Authorization: `Bearer ${session.access_token}` },
         },
       );
 
@@ -200,27 +249,21 @@ export default function ProfileSettings() {
       } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session");
 
-      // ยิงไปหา Backend (Backend จะเป็นคนแก้ DB profiles -> cmu_verified = true)
       await axios.post(
         "http://localhost:8000/api/auth/verify-otp",
         { email: cmuEmail, code: otpCode },
         {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { Authorization: `Bearer ${session.access_token}` },
         },
       );
 
-      // ถ้า Verify ผ่าน Backend แล้ว
-      // 1. อัปเดต Email ใน Supabase Auth
+      // Backend verify สำเร็จ -> Update email ใน Auth
       const { error: supabaseError } = await supabase.auth.updateUser({
         email: cmuEmail,
       });
       if (supabaseError) throw supabaseError;
 
       alert("Email verified successfully!");
-
-      // 2. อัปเดต State หน้าเว็บทันที
       setIsCmuVerified(true);
       setOtpSent(false);
       setOtpCode("");
@@ -249,14 +292,17 @@ export default function ProfileSettings() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left Column: Avatar */}
+        {/* --- LEFT COLUMN: Avatar & Quick Info --- */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+            {/* Avatar Section */}
             <div className="relative inline-block mb-4">
               <div className="w-24 h-24 rounded-full bg-blue-100 mx-auto flex items-center justify-center text-blue-600 text-3xl font-bold overflow-hidden border-4 border-white shadow-sm">
-                {user?.user_metadata?.avatar_url ? (
+                {uploading ? (
+                  <Loader2 className="animate-spin text-blue-600" size={32} />
+                ) : avatarUrl ? (
                   <img
-                    src={user.user_metadata.avatar_url}
+                    src={avatarUrl}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
@@ -268,14 +314,34 @@ export default function ProfileSettings() {
                   ).toUpperCase()
                 )}
               </div>
-              <button className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md">
-                <Camera size={14} />
-              </button>
+
+              {/* Camera Button mapped to File Input */}
+              <label
+                htmlFor="avatar-upload"
+                className={`absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md cursor-pointer ${uploading ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                {uploading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Camera size={14} />
+                )}
+              </label>
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                onChange={uploadAvatar}
+                disabled={uploading}
+                className="hidden"
+              />
             </div>
+
             <h2 className="text-lg font-bold text-gray-900">
               {profile.first_name} {profile.last_name}
             </h2>
             <p className="text-sm text-gray-500 mb-3">{user.email}</p>
+
+            {/* Verify Status Badge */}
             <div className="flex justify-center">
               {isCmuVerified ? (
                 <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full flex items-center gap-1 font-medium">
@@ -290,9 +356,9 @@ export default function ProfileSettings() {
           </div>
         </div>
 
-        {/* Right Column: Forms */}
+        {/* --- RIGHT COLUMN: Forms --- */}
         <div className="md:col-span-2 space-y-8">
-          {/* 1. Academic & Personal Info */}
+          {/* 1. Academic & Personal Info Form */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2 border-b pb-4">
               <GraduationCap className="text-blue-600" size={24} />
