@@ -17,6 +17,7 @@ import Catalog from "./Pages/Catalog";
 import AuthSuccess from "./Pages/AuthSuccess";
 import AuthCallback from "./Pages/AuthCallback";
 import ProfileSettings from "./Pages/ProfileSettings";
+import AdminDashboard from "./Pages/AdminDashboard";
 import { CssVarsProvider } from "@mui/joy/styles";
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
               <Route path="/auth-callback" element={<AuthCallback />} />
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/catalog" element={<Catalog />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>

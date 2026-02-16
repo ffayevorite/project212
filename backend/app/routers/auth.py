@@ -265,7 +265,7 @@ async def verify_otp(
     # *** ไฮไลท์: ใช้ supabase_admin เพื่อข้าม RLS Policy ***
     try:
         update_response = supabase_admin.table("profiles") \
-            .update({"cmu_verified": True}) \
+            .update({"cmu_verified": True,"cmu_mail": data.email}) \
             .eq("id", current_user.id) \
             .execute()
             

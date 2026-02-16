@@ -39,6 +39,7 @@ export default function ProfileSettings() {
     student_id: "",
     phone_number: "",
     backup_email: "",
+    cmu_mail: "",
     faculty: "",
     department: "",
     year_level: "",
@@ -100,6 +101,7 @@ export default function ProfileSettings() {
           student_id: data.student_id || "",
           phone_number: data.phone_number || "",
           backup_email: data.backup_email || "",
+          cmu_mail: data.cmu_mail || "",
           faculty: data.faculty || "",
           department: data.department || "",
           year_level: data.year_level || "",
@@ -581,7 +583,7 @@ export default function ProfileSettings() {
                   <div>
                     <p className="font-semibold text-sm">Account Verified</p>
                     <p className="text-xs text-green-700 opacity-80">
-                      Linked to {user.email}
+                      Linked to {profile.cmu_mail}
                     </p>
                   </div>
                 </div>
