@@ -259,12 +259,6 @@ export default function ProfileSettings() {
         },
       );
 
-      // Backend verify สำเร็จ -> Update email ใน Auth
-      const { error: supabaseError } = await supabase.auth.updateUser({
-        email: cmuEmail,
-      });
-      if (supabaseError) throw supabaseError;
-
       alert("Email verified successfully!");
       setIsCmuVerified(true);
       setOtpSent(false);

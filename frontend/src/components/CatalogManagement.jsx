@@ -27,9 +27,9 @@ export default function CatalogManagement() {
     title: "",
     description: "",
     category: "",
-    price: "",
+    amount: "",
     image_url: "",
-    is_active: true,
+    status: "",
   });
 
   // --- 1. Fetch Data ---
@@ -96,9 +96,9 @@ export default function CatalogManagement() {
         title: formData.title,
         description: formData.description,
         category: formData.category,
-        price: parseFloat(formData.price) || 0,
+        amount: formData.amount || 0,
         image_url: formData.image_url,
-        is_active: formData.is_active,
+        status: formData.status,
       };
 
       let error;
@@ -152,9 +152,9 @@ export default function CatalogManagement() {
         title: item.title,
         description: item.description || "",
         category: item.category || "",
-        price: item.price || "",
+        amount: item.amount || "",
         image_url: item.image_url || "",
-        is_active: item.is_active,
+        status: item.status || "",
       });
     } else {
       setIsEditing(false);
@@ -163,9 +163,9 @@ export default function CatalogManagement() {
         title: "",
         description: "",
         category: "",
-        price: "",
+        amount: "",
         image_url: "",
-        is_active: true,
+        status: "active",
       });
     }
     setIsModalOpen(true);
@@ -183,6 +183,28 @@ export default function CatalogManagement() {
       (item.category &&
         item.category.toLowerCase().includes(searchTerm.toLowerCase())),
   );
+  const categories = [
+    "Computer",
+    "Laptop",
+    "Monitor",
+    "Keyboard",
+    "Mouse",
+    "Printer",
+    "Projector",
+    "Networking Equipment",
+    "Microcontroller / IoT",
+    "Cable",
+    "Adapter",
+    "Storage Device",
+    "Document",
+    "Other",
+  ];
+
+  const statusStyles = {
+    active: "bg-green-100 text-green-700",
+    pending: "bg-yellow-100 text-yellow-700",
+    inactive: "bg-gray-100 text-gray-600",
+  };
 
   return (
     <div className="p-8 w-full max-w-7xl mx-auto">
@@ -236,7 +258,7 @@ export default function CatalogManagement() {
                   <th className="px-6 py-4 w-20">Image</th>
                   <th className="px-6 py-4">Title / Description</th>
                   <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">Price</th>
+                  <th className="px-6 py-4">amount</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -275,15 +297,16 @@ export default function CatalogManagement() {
                         </span>
                       </td>
                       <td className="px-6 py-4 font-mono text-gray-600">
-                        {item.price > 0
-                          ? `฿${item.price.toLocaleString()}`
-                          : "Free"}
+                        {item.amount.toLocaleString()}
                       </td>
                       <td className="px-6 py-4">
-                        <div
-                          className={`w-2.5 h-2.5 rounded-full ${item.is_active ? "bg-green-500" : "bg-gray-300"}`}
-                          title={item.is_active ? "Active" : "Inactive"}
-                        ></div>
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            statusStyles[item.status] || statusStyles.inactive
+                          }`}
+                        >
+                          {item.status}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -392,20 +415,22 @@ export default function CatalogManagement() {
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                   >
                     <option value="">Select...</option>
-                    <option value="Activity">Activity</option>
-                    <option value="Merchandise">Merchandise</option>
-                    <option value="Service">Service</option>
+                    {categories.sort().map((key) => (
+                      <option key={key} value={key}>
+                        {key}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price (Optional)
+                    amount (Optional)
                   </label>
                   <input
                     type="number"
-                    value={formData.price}
+                    value={formData.amount}
                     onChange={(e) =>
-                      setFormData({ ...formData, price: e.target.value })
+                      setFormData({ ...formData, amount: e.target.value })
                     }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="0.00"
@@ -428,19 +453,24 @@ export default function CatalogManagement() {
                 ></textarea>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.is_active}
-                  onChange={(e) =>
-                    setFormData({ ...formData, is_active: e.target.checked })
-                  }
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="isActive" className="text-sm text-gray-700">
-                  Active (Visible to users)
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
                 </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      status: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
 
               {/* Action Buttons */}
