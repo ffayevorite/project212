@@ -1,0 +1,188 @@
+import React, { useState } from 'react';
+import { Search, MapPin,Filter } from 'lucide-react';
+import toolsData from './backend/data/tools.json';
+
+const CONDITION_CONFIG = {
+  excellent: {
+    label: 'Excellent Condition',
+    textColor: 'text-green-700',
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200'
+  },
+  bad: {
+    label: 'Bad Condition',
+    textColor: 'text-red-700',
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200'
+  },
+  good: {
+    label: 'Good Condition',
+    textColor: 'text-cyan-700',
+    bgColor: 'bg-cyan-50',
+    borderColor: 'border-cyan-200'
+  }
+}
+
+export default function Catalog() {
+  // State
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // filter logic
+  const filteredTools = toolsData.filter((tool) => {
+    const matchesCategory = activeCategory === 'All' || tool.category === activeCategory;
+    const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const categories = ['All', 'Power Tools', 'Electronics', 'Manufacturing'];
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20 font-sans">
+
+      {/* --- Hero Section --- */}
+      <div className="bg-[#1a237e] text-white px-6 py-12 shadow-md">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-2">Borrow Tools for Your Projects</h2>
+          <p className="text-blue-200 mb-8 text-sm md:text-base">
+            Access professional-grade equipment for your academic and research needs
+          </p>
+          
+          {/* {Search Bar} */}
+          <div className="relative max-w-lg">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input 
+              type="text"
+              placeholder="Search for tools..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-lg bg-blue-900/50 border border-blue-700 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* --- Filter Section --- */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                activeCategory === cat 
+                  ? 'bg-blue-700 text-white shadow-md' 
+                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-gray-500 text-sm mb-4">Showing {filteredTools.length} tools</p>
+
+        {/* --- Tool Grid --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTools.map((tool) => (
+            <ToolCard key={tool.id} tool={tool} />
+          ))}
+        </div>
+
+        {filteredTools.length === 0 && (
+          <div className="text-center py-20 text-gray-400">
+            <Filter className="w-12 h-12 mx-auto mb-2 opacity-20" />
+            <p>No tools found matching your criteria.</p>
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
+// --- Sub-Component: Tool Card ---
+function ToolCard({ tool }) {
+  const isAvailable = tool.status === 'Available';
+  const conditionStyle = CONDITION_CONFIG[tool.condition] || {
+    label: tool.condition.toUpperCase(),
+    textColor: 'text-white',
+    bgColor: 'bg-gray-400',
+    borderColor: 'border-gray-200'
+  };
+
+  return (
+    <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-gray-100 flex flex-col h-full">
+      {/* {Image Area}*/}
+      <div className="h-48 overflow-hidden bg-gray-100 relative">
+        <img 
+          src={tool.image} 
+          alt={tool.name} 
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+        />
+      </div>
+
+      {/* {Content Area} */}
+      <div className="p-5 flex flex-col flex-1">
+
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <span className="text-blue-600 text-xs font-bold uppercase tracking-wider block mb-1">
+              {tool.category}
+            </span>
+            <h3 className="font-bold text-gray-900 text-lg leading-tight">{tool.name}</h3>
+          </div>
+          
+          {/* {Status Badge} */}
+          <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full
+            ${
+              isAvailable ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+            
+            {tool.status}
+          </div>
+        </div>
+
+        <p className="text-gray-500 text-m mb-4 line-clamp-2 flex-1">
+          {tool.description}
+        </p>
+
+        {/* {Location} */}
+        <div className="flex items-center gap-2 text-gray-400 text-xs pt-4 border-t border-gray-100">
+          <MapPin size={14} />
+          <span>{tool.location}</span>
+        </div>
+
+        <div className="flex justify-between mt-2 items-start">
+          {/* {Condition} */}
+          <div className={`flex items-center gap-1 mt-2 text-xs font-medium px-2 py-1 rounded-full
+            ${conditionStyle.textColor}
+            ${conditionStyle.bgColor}
+            border
+            ${conditionStyle.borderColor}
+            `}>
+            <span>{conditionStyle.label}</span>
+          </div>
+
+          {/* {Request} */}
+          {isAvailable ? (
+            <button 
+              onClick={() => alert("Submit Send Request!")}
+              className="bg-blue-700 hover:bg-blue-800 text-white text-m font-medium px-4 py-2 rounded-full shadow-md transition-colors"
+            >
+              Request
+            </button>
+            ) : (
+            <button 
+              disabled
+              className="bg-gray-200 text-gray-400 text-m font-medium px-4 py-2 rounded-full cursor-not-allowed"
+            >
+              Borrowed
+            </button>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}

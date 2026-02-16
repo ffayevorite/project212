@@ -1,0 +1,62 @@
+[
+    {
+        "id": 1,
+        "name": "Power Drill",
+        "category": "Power Tools",
+        "description": "Cordless power drill with multiple speed settings and drill bit set included.",
+        "location": "Engineering Lab - Room 101",
+        "status": "Available",
+        "condition": "bad",
+        "image": "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+        "id": 2,
+        "name": "Digital Oscilloscope",
+        "category": "Electronics",
+        "description": "High-precision digital oscilloscope for circuit testing and analysis.",
+        "location": "Electronics Lab - Room 205",
+        "status": "Not Available",
+        "condition": "excellent",
+        "image": ""
+    },
+    {
+        "id": 3,
+        "name": "3D Printer",
+        "category": "Manufacturing",
+        "description": "FDM 3D printer with build volume 220x220x250mm. PLA and ABS compatible.",
+        "location": "Maker Space - Room 150",
+        "status": "In Use",
+        "condition": "good",
+        "image": ""
+    },
+    {
+        "id": 4,
+        "name": "Soldering Station",
+        "category": "Electronics",
+        "description": "Professional soldering station with temperature control.",
+        "location": "Electronics Lab - Room 205",
+        "status": "Available",
+        "condition": "maintenance",
+        "image": ""
+    },
+    {
+        "id": 5,
+        "name": "Angle Grinder",
+        "category": "Power Tools",
+        "description": "Heavy-duty angle grinder for cutting and polishing metal.",
+        "location": "Workshop - B1",
+        "status": "In Use",
+        "condition": "excellent",
+        "image": ""
+    },
+    {
+        "id": 6,
+        "name": "Laser Cutter",
+        "category": "Manufacturing",
+        "description": "Desktop laser cutter for engraving wood, acrylic, and leather.",
+        "location": "Maker Space - Room 150",
+        "status": "Available",
+        "condition": "excellent",
+        "image": ""
+    }
+]
