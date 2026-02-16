@@ -1,6 +1,5 @@
 // src/pages/Catalog.jsx
-import React, { useState, useEffect } from "react";
-import { supabase } from "../utils/supabaseClient";
+import { useState, useEffect } from "react";
 import { useCart } from "../contexts/CartContext"; // <--- IMPORT THIS
 import {
   Search,
@@ -27,12 +26,11 @@ const Catalog = () => {
   const fetchCatalog = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("catalog")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+      const response = await fetch("http://localhost:8000/api/catalog");
+      if (!response.ok) {
+        throw new Error("Failed to fetch catalog");
+      }
+      const data = await response.json();
       setItems(data || []);
     } catch (error) {
       console.error("Error fetching catalog:", error.message);

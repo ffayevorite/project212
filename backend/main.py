@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 
 from app.routers.auth import router as auth_router
-
+from app.routers.catalog import router as catalog_router
 # Load environment variables
 load_dotenv()
 
@@ -34,6 +34,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(catalog_router, prefix="/api/catalog", tags=["Catalog"])
 
 # Health check endpoint
 @app.get("/api/health")

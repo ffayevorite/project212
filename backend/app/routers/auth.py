@@ -12,7 +12,6 @@ import random
 
 from app.utils.email import send_otp_email
 
-
 router = APIRouter()
 security = HTTPBearer()
 
@@ -278,3 +277,4 @@ async def verify_otp(
         raise HTTPException(status_code=500, detail="Failed to update verification status")
 
     return {"success": True, "message": "Email verified successfully"}
+
