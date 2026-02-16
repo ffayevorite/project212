@@ -24,10 +24,12 @@ const DashboardOverview = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+
       // Fetch Users
       const { data: users } = await supabase
         .from("profiles")
         .select("faculty, cmu_verified");
+
       // Fetch Catalog Items
       const { count: itemCount } = await supabase
         .from("catalog")
@@ -36,7 +38,12 @@ const DashboardOverview = () => {
       if (users) {
         const total = users.length;
         const verified = users.filter((u) => u.cmu_verified).length;
-        setStats({ total, verified, items: itemCount || 0 });
+
+        setStats({
+          total,
+          verified,
+          items: itemCount || 0,
+        });
 
         // Process Chart Data
         const counts = {};
@@ -44,8 +51,12 @@ const DashboardOverview = () => {
           const fac = u.faculty || "Unknown";
           counts[fac] = (counts[fac] || 0) + 1;
         });
+
         setFacultyData(
-          Object.keys(counts).map((k) => ({ name: k, count: counts[k] })),
+          Object.keys(counts).map((k) => ({
+            name: k,
+            count: counts[k],
+          })),
         );
       }
     } catch (error) {
@@ -57,77 +68,96 @@ const DashboardOverview = () => {
 
   if (loading)
     return (
-      <div className="p-8 text-center">
-        <Loader2 className="animate-spin mx-auto text-blue-600" />
+      <div className="p-10 flex justify-center items-center">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
       </div>
     );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 className="text-2xl font-bold text-gray-800">Overview</h2>
+    <div className="space-y-6 p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Overview</h2>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+      {/* ================= Stats Cards ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Total Users */}
+        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <p className="text-gray-500 text-sm">Total Users</p>
-            <h3 className="text-3xl font-bold text-gray-900">{stats.total}</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              {stats.total}
+            </h3>
           </div>
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg w-fit">
             <Users size={24} />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+
+        {/* Verified */}
+        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <p className="text-gray-500 text-sm">Verified Students</p>
-            <h3 className="text-3xl font-bold text-green-600">
+            <h3 className="text-2xl sm:text-3xl font-bold text-green-600">
               {stats.verified}
             </h3>
           </div>
-          <div className="p-3 bg-green-50 text-green-600 rounded-lg">
+          <div className="p-3 bg-green-50 text-green-600 rounded-lg w-fit">
             <ShieldCheck size={24} />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+
+        {/* Items */}
+        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <p className="text-gray-500 text-sm">Catalog Items</p>
-            <h3 className="text-3xl font-bold text-purple-600">
+            <h3 className="text-2xl sm:text-3xl font-bold text-purple-600">
               {stats.items}
             </h3>
           </div>
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
+          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg w-fit">
             <ShoppingBag size={24} />
           </div>
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-80">
+      {/* ================= Chart ================= */}
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
         <h3 className="font-semibold text-gray-800 mb-4">Users by Faculty</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={facultyData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" hide />
-            <YAxis />
-            <Tooltip
-              contentStyle={{
-                borderRadius: "8px",
-                border: "none",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-              }}
-            />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-              {facultyData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b"][index % 4]}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+
+        <div className="w-full h-[250px] sm:h-[300px] md:h-[350px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={facultyData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 12 }}
+                angle={-20}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "8px",
+                  border: "none",
+                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                }}
+              />
+              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                {facultyData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={
+                      ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b"][index % 4]
+                    }
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
 };
+
 export default DashboardOverview;

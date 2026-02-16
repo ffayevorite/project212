@@ -9,7 +9,6 @@ import {
   X,
   Save,
   Loader2,
-  MoreHorizontal,
 } from "lucide-react";
 
 export default function CatalogManagement() {
@@ -17,7 +16,6 @@ export default function CatalogManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- Modal & Form States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -29,160 +27,9 @@ export default function CatalogManagement() {
     category: "",
     amount: "",
     image_url: "",
-    status: "",
+    status: "active",
   });
 
-  // --- 1. Fetch Data ---
-  useEffect(() => {
-    fetchCatalog();
-  }, []);
-
-  const fetchCatalog = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("catalog")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setItems(data);
-    } catch (error) {
-      console.error("Error fetching catalog:", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- 2. Handle Image Upload ---
-  const handleImageUpload = async (e) => {
-    try {
-      setUploading(true);
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Upload to 'catalog-images' bucket
-      const { error: uploadError } = await supabase.storage
-        .from("catalog-images") // **ต้องสร้าง Bucket นี้ใน Supabase ก่อน**
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("catalog-images").getPublicUrl(filePath);
-
-      setFormData({ ...formData, image_url: publicUrl });
-    } catch (error) {
-      alert("Upload failed: " + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // --- 3. Create / Update Logic ---
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.title) return alert("Please enter a title");
-
-    try {
-      setUploading(true); // Reuse loading state for saving
-
-      const payload = {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        amount: formData.amount || 0,
-        image_url: formData.image_url,
-        status: formData.status,
-      };
-
-      let error;
-      if (isEditing) {
-        // UPDATE
-        const { error: updateError } = await supabase
-          .from("catalog")
-          .update(payload)
-          .eq("id", currentId);
-        error = updateError;
-      } else {
-        // CREATE
-        const { error: insertError } = await supabase
-          .from("catalog")
-          .insert([payload]);
-        error = insertError;
-      }
-
-      if (error) throw error;
-
-      alert(isEditing ? "Item updated!" : "Item created!");
-      closeModal();
-      fetchCatalog(); // Refresh list
-    } catch (error) {
-      alert("Error saving item: " + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // --- 4. Delete Logic ---
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) return;
-
-    try {
-      const { error } = await supabase.from("catalog").delete().eq("id", id);
-      if (error) throw error;
-
-      setItems(items.filter((item) => item.id !== id));
-    } catch (error) {
-      alert("Error deleting item: " + error.message);
-    }
-  };
-
-  // --- Helper Functions ---
-  const openModal = (item = null) => {
-    if (item) {
-      setIsEditing(true);
-      setCurrentId(item.id);
-      setFormData({
-        title: item.title,
-        description: item.description || "",
-        category: item.category || "",
-        amount: item.amount || "",
-        image_url: item.image_url || "",
-        status: item.status || "",
-      });
-    } else {
-      setIsEditing(false);
-      setCurrentId(null);
-      setFormData({
-        title: "",
-        description: "",
-        category: "",
-        amount: "",
-        image_url: "",
-        status: "active",
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setIsEditing(false);
-  };
-
-  // Filter items
-  const filteredItems = items.filter(
-    (item) =>
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.category &&
-        item.category.toLowerCase().includes(searchTerm.toLowerCase())),
-  );
   const categories = [
     "Computer",
     "Laptop",
@@ -203,146 +50,304 @@ export default function CatalogManagement() {
   const statusStyles = {
     active: "bg-green-100 text-green-700",
     pending: "bg-yellow-100 text-yellow-700",
-    inactive: "bg-gray-100 text-gray-600",
+    inactive: "bg-red-100 text-red-600",
   };
 
+  // ================= FETCH =================
+  useEffect(() => {
+    fetchCatalog();
+  }, []);
+
+  const fetchCatalog = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("catalog")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error) setItems(data);
+    setLoading(false);
+  };
+
+  // ================= IMAGE UPLOAD =================
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("catalog-images")
+      .upload(fileName, file);
+
+    if (!error) {
+      const { data } = supabase.storage
+        .from("catalog-images")
+        .getPublicUrl(fileName);
+
+      setFormData((prev) => ({
+        ...prev,
+        image_url: data.publicUrl,
+      }));
+    }
+
+    setUploading(false);
+  };
+
+  // ================= CREATE / UPDATE =================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.title) return alert("Title required");
+
+    setUploading(true);
+
+    const payload = {
+      ...formData,
+      amount: formData.amount || 0,
+    };
+
+    let error;
+
+    if (isEditing) {
+      const { error: updateError } = await supabase
+        .from("catalog")
+        .update(payload)
+        .eq("id", currentId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase
+        .from("catalog")
+        .insert([payload]);
+      error = insertError;
+    }
+
+    if (!error) {
+      closeModal();
+      fetchCatalog();
+    }
+
+    setUploading(false);
+  };
+
+  // ================= DELETE =================
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete item?")) return;
+
+    await supabase.from("catalog").delete().eq("id", id);
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  // ================= MODAL =================
+  const openModal = (item = null) => {
+    if (item) {
+      setIsEditing(true);
+      setCurrentId(item.id);
+      setFormData(item);
+    } else {
+      setIsEditing(false);
+      setCurrentId(null);
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        amount: "",
+        image_url: "",
+        status: "active",
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setIsEditing(false);
+  };
+
+  // ================= FILTER =================
+  const filteredItems = items.filter(
+    (item) =>
+      item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
   return (
-    <div className="p-8 w-full max-w-7xl mx-auto">
-      {/* --- Header --- */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+    <div className="p-4 sm:p-8 w-full max-w-7xl mx-auto">
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Catalog Management
-          </h1>
+          <h1 className="text-2xl font-bold">Catalog Management</h1>
           <p className="text-gray-500 text-sm">
-            Manage your products, events, or resources.
+            Manage your products and resources
           </p>
         </div>
+
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+          className="w-full sm:w-auto flex justify-center items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700"
         >
-          <Plus size={20} />
-          Add New Item
+          <Plus size={18} />
+          Add Item
         </button>
       </div>
 
-      {/* --- Search & Filters --- */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      {/* ================= SEARCH ================= */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border mb-6">
+        <div className="relative max-w-md">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
             type="text"
-            placeholder="Search by title or category..."
+            placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
 
-      {/* --- Data Table --- */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* ================= TABLE / CARD ================= */}
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-500">
-            <Loader2 className="animate-spin mx-auto mb-2" /> Loading...
+            <Loader2 className="animate-spin mx-auto mb-2" />
+            Loading...
           </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">No items found</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 text-gray-500 font-medium">
-                <tr>
-                  <th className="px-6 py-4 w-20">Image</th>
-                  <th className="px-6 py-4">Title / Description</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">amount</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredItems.length > 0 ? (
-                  filteredItems.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-gray-50 transition-colors group"
-                    >
+          <>
+            {/* DESKTOP TABLE */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4">Image</th>
+                    <th className="px-6 py-4">Title</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4">Amount</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredItems.map((item) => (
+                    <tr key={item.id}>
                       <td className="px-6 py-4">
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden">
                           {item.image_url ? (
                             <img
                               src={item.image_url}
-                              alt=""
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <ImageIcon size={20} className="text-gray-400" />
+                            <ImageIcon className="m-auto mt-3 text-gray-400" />
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-gray-900">
-                          {item.title}
-                        </p>
-                        <p className="text-gray-500 text-xs truncate max-w-xs">
-                          {item.description}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs font-medium">
-                          {item.category || "Uncategorized"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-gray-600">
-                        {item.amount.toLocaleString()}
+                      <td className="px-6 py-4 font-semibold">{item.title}</td>
+                      <td className="px-6 py-4">{item.category}</td>
+                      <td className="px-6 py-4 font-mono">
+                        {item.amount?.toLocaleString()}
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                            statusStyles[item.status] || statusStyles.inactive
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            statusStyles[item.status]
                           }`}
                         >
                           {item.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => openModal(item)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => openModal(item)}
+                          className="p-2 bg-blue-50 text-blue-600 rounded-lg"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-2 bg-red-50 text-red-600 rounded-lg"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="p-8 text-center text-gray-500">
-                      No items found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* MOBILE CARD */}
+            <div className="md:hidden divide-y">
+              {filteredItems.map((item) => (
+                <div key={item.id} className="p-4 space-y-3">
+                  <div className="flex gap-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="m-auto mt-4 text-gray-400" />
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <p className="font-semibold">{item.title}</p>
+                      <p className="text-xs text-gray-500 line-clamp-2">
+                        {item.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+                          {item.category}
+                        </span>
+                        <span className="font-mono">
+                          {item.amount?.toLocaleString()}
+                        </span>
+                        <span
+                          className={`px-2 py-1 rounded-full ${
+                            statusStyles[item.status]
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => openModal(item)}
+                      className="p-2 bg-blue-50 text-blue-600 rounded-lg"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="p-2 bg-red-50 text-red-600 rounded-lg"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
-      {/* --- Modal Form --- */}
+      {/* ================= MODAL ================= */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg sm:max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-lg text-gray-900">
                 {isEditing ? "Edit Item" : "Create New Item"}
@@ -375,6 +380,7 @@ export default function CatalogManagement() {
                       <span className="text-xs">Click to upload image</span>
                     </div>
                   )}
+
                   <input
                     type="file"
                     accept="image/*"
@@ -385,7 +391,7 @@ export default function CatalogManagement() {
                 </div>
               </div>
 
-              {/* Input Fields */}
+              {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Title
@@ -402,7 +408,8 @@ export default function CatalogManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Category + Amount */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category
@@ -422,9 +429,10 @@ export default function CatalogManagement() {
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    amount (Optional)
+                    Amount
                   </label>
                   <input
                     type="number"
@@ -433,11 +441,12 @@ export default function CatalogManagement() {
                       setFormData({ ...formData, amount: e.target.value })
                     }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="0.00"
+                    placeholder="0"
                   />
                 </div>
               </div>
 
+              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
@@ -450,30 +459,43 @@ export default function CatalogManagement() {
                   }
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                   placeholder="Details about the item..."
-                ></textarea>
+                />
               </div>
 
+              {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status
                 </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      status: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                >
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {["active", "pending", "inactive"].map((status) => (
+                    <button
+                      type="button"
+                      key={status}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          status,
+                        }))
+                      }
+                      className={`
+          px-3 py-2 rounded-lg text-sm font-medium border transition-all
+          ${
+            formData.status === status
+              ? statusStyles[status] +
+                " border-transparent ring-2 ring-offset-1 ring-blue-400"
+              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+          }
+        `}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Buttons */}
               <div className="pt-4 flex justify-end gap-3">
                 <button
                   type="button"
@@ -482,6 +504,7 @@ export default function CatalogManagement() {
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={uploading}

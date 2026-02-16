@@ -307,17 +307,35 @@ export function Header() {
             <Link
               to="/"
               onClick={() => setIsMenuOpen(false)}
-              className={`block px-3 py-3 rounded-md text-base font-medium ${isActive("/")}`}
+              className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
             >
-              Home
+              <Home size={16} /> Home
             </Link>
             <Link
               to="/catalog"
               onClick={() => setIsMenuOpen(false)}
-              className={`block px-3 py-3 rounded-md text-base font-medium ${isActive("/catalog")}`}
+              className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
             >
-              Catalog
+              <LayoutGrid size={16} /> Catalog
             </Link>
+            <Link
+              to="/cart"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <ShoppingCart size={16} /> Cart
+            </Link>
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Settings size={16} /> Admin
+              </Link>
+            )}
+
             <div className="border-t border-gray-100 my-2 pt-2">
               {user ? (
                 <>
@@ -327,9 +345,6 @@ export function Header() {
                     className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
                   >
                     <div className="relative">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                        <User size={16} />
-                      </div>
                       <div
                         className={`absolute -bottom-1 -right-1 rounded-full border-2 border-white p-[2px] ${isVerified ? "bg-green-500" : "bg-yellow-400"}`}
                       >
@@ -349,6 +364,7 @@ export function Header() {
                       </p>
                     </div>
                   </Link>
+
                   <button
                     onClick={handleLogout}
                     className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-red-600 hover:bg-red-50 mt-1"
