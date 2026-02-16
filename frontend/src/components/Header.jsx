@@ -4,6 +4,7 @@ import { supabase } from "../utils/supabaseClient";
 import {
   Menu,
   X,
+  Home,
   User,
   LogOut,
   GraduationCap,
@@ -12,6 +13,7 @@ import {
   ShieldCheck,
   AlertCircle,
   Settings,
+  ShoppingCart,
 } from "lucide-react";
 
 export function Header() {
@@ -156,9 +158,9 @@ export function Header() {
           <div className="hidden md:flex space-x-1 items-center">
             <Link
               to="/"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive("/")}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${isActive("/")}`}
             >
-              Home
+              <Home size={16} /> Home
             </Link>
             <Link
               to="/catalog"
@@ -166,6 +168,22 @@ export function Header() {
             >
               <LayoutGrid size={16} /> Catalog
             </Link>
+
+            <Link
+              to="/cart"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${isActive("/cart")}`}
+            >
+              <ShoppingCart size={16} /> Cart
+            </Link>
+            {/* Admin Link */}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${isActive("/admin")}`}
+              >
+                <Settings size={16} /> Admin
+              </Link>
+            )}
           </div>
 
           {/* Right Section */}

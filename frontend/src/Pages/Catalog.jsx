@@ -1,12 +1,14 @@
+// src/pages/Catalog.jsx
 import React, { useState, useEffect } from "react";
 import { supabase } from "../utils/supabaseClient";
+import { useCart } from "../contexts/CartContext"; // <--- IMPORT THIS
 import {
   Search,
   ShoppingBag,
   Image as ImageIcon,
   Loader2,
-  Filter,
-  ArrowRight,
+  Plus,
+  ShoppingCart,
 } from "lucide-react";
 
 const Catalog = () => {
@@ -15,6 +17,9 @@ const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+  // เรียกใช้ Context
+  const { addToCart } = useCart();
+
   useEffect(() => {
     fetchCatalog();
   }, []);
@@ -22,7 +27,6 @@ const Catalog = () => {
   const fetchCatalog = async () => {
     try {
       setLoading(true);
-      // ดึงเฉพาะไอเทมที่ is_active เป็น true (ถ้ามี column นี้)
       const { data, error } = await supabase
         .from("catalog")
         .select("*")
@@ -37,7 +41,6 @@ const Catalog = () => {
     }
   };
 
-  // กรองข้อมูลตาม Search และ Category
   const filteredItems = items.filter((item) => {
     const matchesSearch = item.title
       .toLowerCase()
@@ -78,7 +81,6 @@ const Catalog = () => {
               <ShoppingBag className="text-blue-600" />
               Our Catalog
             </h1>
-
             <div className="flex flex-1 max-w-md gap-2">
               <div className="relative flex-1">
                 <Search
@@ -95,8 +97,6 @@ const Catalog = () => {
               </div>
             </div>
           </div>
-
-          {/* Category Chips */}
           <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
             {categories.map((cat) => (
               <button
@@ -129,7 +129,6 @@ const Catalog = () => {
                 key={item.id}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group flex flex-col"
               >
-                {/* Image Placeholder/Container */}
                 <div className="h-56 bg-gray-100 relative overflow-hidden">
                   {item.image_url ? (
                     <img
@@ -149,7 +148,6 @@ const Catalog = () => {
                   </div>
                 </div>
 
-                {/* Details */}
                 <div className="p-5 flex flex-col flex-1">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-gray-900 line-clamp-2 leading-tight">
@@ -170,11 +168,22 @@ const Catalog = () => {
                       </p>
                     </div>
 
-                    <button className="bg-gray-900 text-white p-2.5 rounded-xl hover:bg-blue-600 transition-colors shadow-sm group/btn">
-                      <ArrowRight
-                        size={20}
-                        className="group-hover/btn:translate-x-1 transition-transform"
-                      />
+                    {/* ปุ่ม Add to Cart ที่เชื่อมกับ Context */}
+                    <button
+                      onClick={() => addToCart(item)}
+                      disabled={item.amount <= 0}
+                      className="bg-gray-900 text-white p-2.5 rounded-xl hover:bg-blue-600 transition-colors shadow-sm group/btn disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {item.amount > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <Plus
+                            size={20}
+                            className="group-hover/btn:rotate-90 transition-transform"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xs">Out</span>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -189,9 +198,6 @@ const Catalog = () => {
             <h3 className="text-lg font-medium text-gray-900">
               No items found
             </h3>
-            <p className="text-gray-500">
-              Try adjusting your search or category filter.
-            </p>
           </div>
         )}
       </div>
