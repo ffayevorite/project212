@@ -6,13 +6,13 @@ const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   // โหลดข้อมูลจาก LocalStorage เมื่อเปิดเว็บ (เพื่อให้ Refresh แล้วของไม่หาย)
   const [cartItems, setCartItems] = useState(() => {
-    const savedCart = localStorage.getItem("cmu_cart");
+    const savedCart = localStorage.getItem("cart");
     return savedCart ? JSON.parse(savedCart) : [];
   });
 
   // บันทึกลง LocalStorage ทุกครั้งที่ตะกร้าเปลี่ยน
   useEffect(() => {
-    localStorage.setItem("cmu_cart", JSON.stringify(cartItems));
+    localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
   // ฟังก์ชันเพิ่มสินค้า
