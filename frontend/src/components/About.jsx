@@ -1,4 +1,3 @@
-
 export function About() {
   return (
     <section id="about" className="py-16 px-4 bg-white">
@@ -11,7 +10,8 @@ export function About() {
             Gear up your creativity.
           </h2>
           <p className="text-lg text-gray-600">
-            A platfrom for students to borrow equipment for your projects and learning.
+            A platfrom for students to borrow equipment for your projects and
+            learning.
           </p>
         </div>
       </div>

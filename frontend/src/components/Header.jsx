@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ShieldCheck,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 
 export function Header() {
@@ -21,8 +22,9 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // --- 1. ฟังก์ชันดึงค่าจาก DB ---
+  // --- 1. ฟังก์ชันดึงค่าจาก DB ---Settings
   const fetchProfileStatus = async (userId) => {
     // console.log("Fetching status for:", userId); // Debug
     try {
@@ -38,8 +40,27 @@ export function Header() {
       }
 
       if (data) {
-        // console.log("Status from DB:", data.cmu_verified); // Debug
         setIsVerified(data.cmu_verified === true);
+      }
+    } catch (error) {
+      console.error("Fetch Error:", error);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error.message);
+        return;
+      }
+
+      if (data) {
+        setIsAdmin(data.role === "admin");
+        // console.log("role:", data.role);
       }
     } catch (error) {
       console.error("Fetch Error:", error);
@@ -212,6 +233,16 @@ export function Header() {
                         <span className="ml-auto w-2 h-2 rounded-full bg-yellow-400"></span>
                       )}
                     </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Settings size={16} /> Admin Settings
+                      </Link>
+                    )}
+
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"

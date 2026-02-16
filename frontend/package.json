@@ -14,7 +14,10 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.0",
-    "@supabase/supabase-js": "^2.39.3"
+    "@supabase/supabase-js": "^2.39.3",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@mui/joy": "latest"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",

@@ -312,3 +312,18 @@ class SendOtpRequest(BaseModel):
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
     code: str
+
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
+class ItemCreate(BaseModel):
+    name: str
+    description: Optional[str]
+    image_url: Optional[str]
+    total_quantity: int
+
+class BorrowCreate(BaseModel):
+    item_id: str
+    borrow_date: datetime
+    return_date: datetime
