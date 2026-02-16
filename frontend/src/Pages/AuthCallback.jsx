@@ -7,10 +7,8 @@ const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase client จะจับ session จาก URL hash ให้อัตโนมัติ
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        // Login สำเร็จ! เก็บ state หรือ redirect
         navigate("/");
       }
     });

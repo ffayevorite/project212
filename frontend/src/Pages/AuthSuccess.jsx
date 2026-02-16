@@ -1,17 +1,17 @@
-import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const AuthSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const token = searchParams.get("token");
     if (token) {
-      localStorage.setItem('token', token);
-      navigate('/catalog', { replace: true });
+      localStorage.setItem("token", token);
+      navigate("/catalog", { replace: true });
     } else {
-      navigate('/', { replace: true });
+      navigate("/", { replace: true });
     }
   }, [searchParams, navigate]);
 

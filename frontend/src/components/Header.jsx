@@ -19,12 +19,23 @@ import {
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
-
   const [user, setUser] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLogin, setIsLogin] = useState(false);
+  useEffect(() => {
+    checkLogin();
+  }, []);
+  const checkLogin = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setIsLogin(false);
+    } else {
+      setIsLogin(true);
+    }
+  };
 
   // --- 1. ฟังก์ชันดึงค่าจาก DB ---Settings
   const fetchProfileStatus = async (userId) => {

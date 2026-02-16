@@ -1,6 +1,7 @@
 // src/pages/Catalog.jsx
 import { useState, useEffect } from "react";
 import { useCart } from "../contexts/CartContext"; // <--- IMPORT THIS
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   ShoppingBag,
@@ -18,8 +19,15 @@ const Catalog = () => {
 
   // เรียกใช้ Context
   const { addToCart } = useCart();
-
+  const navigate = useNavigate();
+  const checkLogin = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
+  };
   useEffect(() => {
+    checkLogin();
     fetchCatalog();
   }, []);
 

@@ -27,15 +27,8 @@ export default function App() {
     <CartProvider>
       <CssVarsProvider>
         <Router>
-          {/* ใช้ Flexbox เพื่อจัดการ Layout:
-        - min-h-screen: ให้ความสูงเต็มจอเสมอ
-        - flex-col: เรียงบนลงล่าง
-        */}
           <div className="flex flex-col min-h-screen bg-gray-50">
-            {/* Header อยู่บนสุด แสดงทุกหน้า */}
             <Header />
-
-            {/* Main Content: flex-grow จะดัน Footer ลงไปข้างล่างสุด */}
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -50,8 +43,6 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </main>
-
-            {/* Footer อยู่ล่างสุด แสดงทุกหน้า */}
             <Footer />
           </div>
         </Router>
