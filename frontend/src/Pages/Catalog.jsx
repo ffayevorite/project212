@@ -19,15 +19,8 @@ const Catalog = () => {
 
   // เรียกใช้ Context
   const { addToCart } = useCart();
-  const navigate = useNavigate();
-  const checkLogin = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    }
-  };
+
   useEffect(() => {
-    checkLogin();
     fetchCatalog();
   }, []);
 

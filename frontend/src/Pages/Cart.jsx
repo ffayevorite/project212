@@ -1,5 +1,4 @@
 // src/pages/Cart.jsx
-import { useEffect } from "react";
 import { useCart } from "../contexts/CartContext"; // <--- IMPORT THIS
 import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -10,16 +9,6 @@ export default function Cart() {
   const navigate = useNavigate();
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  useEffect(() => {
-    checkLogin();
-  }, []);
-  const checkLogin = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
