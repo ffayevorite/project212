@@ -9,37 +9,16 @@ import {
   Loader2,
   Plus,
   ShoppingCart,
-  MapPin, 
+  MapPin,
   Filter
 } from "lucide-react";
-
-const CONDITION_CONFIG = {
-  excellent: {
-    label: 'Excellent Condition',
-    textColor: 'text-green-700',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200'
-  },
-  bad: {
-    label: 'Bad Condition',
-    textColor: 'text-red-700',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200'
-  },
-  good: {
-    label: 'Good Condition',
-    textColor: 'text-cyan-700',
-    bgColor: 'bg-cyan-50',
-    borderColor: 'border-cyan-200'
-  }
-}
 
 export default function Catalog() {
   // State
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -52,7 +31,7 @@ export default function Catalog() {
   //     navigate("/login");
   //   }
   // };
-  
+
 
   // Fetch Data
   useEffect(() => {
@@ -65,15 +44,15 @@ export default function Catalog() {
       setError(null);
       const params = new URLSearchParams();
 
-      if (activeCategory && activeCategory !== 'All') {params.append('category', activeCategory);}
-      if (searchTerm) {params.append('search', searchTerm);}
-      
+      if (activeCategory && activeCategory !== 'All') { params.append('category', activeCategory); }
+      if (searchTerm) { params.append('search', searchTerm); }
+
       const response = await fetch(`http://localhost:8000/api/catalog?${params.toString()}`);
-      
-      if (!response.ok) {throw new Error("Failed to fetch catalog");}
+
+      if (!response.ok) { throw new Error("Failed to fetch catalog"); }
       const data = await response.json();
       setItems(data || []);
-      
+
     } catch (error) {
       console.error("Error fetching catalog:", error.message);
       setError(error.message);
@@ -81,7 +60,7 @@ export default function Catalog() {
       setLoading(false);
     }
   };
-  
+
   const categories = [
     "All",
     "Computer",
@@ -113,11 +92,11 @@ export default function Catalog() {
           <p className="text-blue-200 mb-8 text-sm md:text-base">
             Access professional-grade equipment for your academic and research needs
           </p>
-          
+
           {/* {Search Bar} */}
           <div className="relative max-w-lg">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input 
+            <input
               type="text"
               placeholder="Search for tools..."
               value={searchTerm}
@@ -135,11 +114,10 @@ export default function Catalog() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                activeCategory === cat 
-                  ? 'bg-blue-700 text-white shadow-md' 
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${activeCategory === cat
+                  ? 'bg-blue-700 text-white shadow-md'
                   : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
+                }`}
             >
               {cat}
             </button>
@@ -148,7 +126,7 @@ export default function Catalog() {
 
         <p className="text-gray-500 text-sm mb-4">Showing {items.length} tools</p>
 
-        {loading && <div className="text-center py-10 animate-pulse">Loading items...</div>}        
+        {loading && <div className="text-center py-10 animate-pulse">Loading items...</div>}
         {error && <div className="text-center py-10 text-red-500">{error}</div>}
 
         {/* --- Tool Grid --- */}
@@ -176,21 +154,14 @@ export default function Catalog() {
 // --- Sub-Component: Tool Card ---
 function ToolCard({ tool }) {
   const isAvailable = tool.status === 'available' || tool.stock > 0;
-  const currentCondition = tool.condition || 'N/A';
-  const conditionStyle = CONDITION_CONFIG[currentCondition] || {
-    label: currentCondition,
-    textColor: 'text-white',
-    bgColor: 'bg-gray-400',
-    borderColor: 'border-gray-200'
-  };
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-gray-100 flex flex-col h-full">
       {/* {Image Area}*/}
       <div className="h-48 overflow-hidden bg-gray-100 relative">
-        <img 
-          src={tool.image_url} 
-          alt={tool.name} 
+        <img
+          src={tool.image_url}
+          alt={tool.name}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
         />
       </div>
@@ -205,13 +176,12 @@ function ToolCard({ tool }) {
             </span>
             <h3 className="font-bold text-gray-900 text-lg leading-tight">{tool.name}</h3>
           </div>
-          
+
           {/* {Status Badge} */}
           <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full
-            ${
-              isAvailable ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+            ${isAvailable ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
             }`}>
-            
+
             {tool.status}
           </div>
         </div>
@@ -228,25 +198,18 @@ function ToolCard({ tool }) {
 
         <div className="flex justify-between mt-2 items-start">
           {/* {Condition} */}
-          <div className={`flex items-center gap-1 mt-2 text-xs font-medium px-2 py-1 rounded-full
-            ${conditionStyle.textColor}
-            ${conditionStyle.bgColor}
-            border
-            ${conditionStyle.borderColor}
-            `}>
-            <span>{conditionStyle.label}</span>
-          </div>
+          <span className='font-medium px-2 py-1 text-x'>Stock: {tool.stock}</span>
 
           {/* {Request} */}
           {isAvailable ? (
-            <button 
+            <button
               onClick={() => alert("Submit Send Request!")}
               className="bg-blue-700 hover:bg-blue-800 text-white text-m font-medium px-4 py-2 rounded-full shadow-md transition-colors"
             >
               Request
             </button>
-            ) : (
-            <button 
+          ) : (
+            <button
               disabled
               className="bg-gray-200 text-gray-400 text-m font-medium px-4 py-2 rounded-full cursor-not-allowed"
             >
