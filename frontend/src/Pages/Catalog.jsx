@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useCart } from "../contexts/CartContext";
-import { useNavigate } from "react-router-dom"; // Don't forget to import this
 import { Search, MapPin, Filter } from "lucide-react";
 
 export default function Catalog() {
@@ -14,17 +13,6 @@ export default function Catalog() {
 
   // --- Hooks ---
   const { addToCart } = useCart();
-  const navigate = useNavigate();
-
-  // --- Login Check Helper ---
-  const checkLogin = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login"); // Redirect if no token
-      return false;
-    }
-    return true;
-  };
 
   // --- Fetch Data ---
   useEffect(() => {
@@ -146,12 +134,7 @@ export default function Catalog() {
         {!loading && !error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((tool) => (
-              <ToolCard
-                key={tool.id}
-                tool={tool}
-                addToCart={addToCart}
-                checkLogin={checkLogin} // Pass checkLogin down
-              />
+              <ToolCard key={tool.id} tool={tool} addToCart={addToCart} />
             ))}
           </div>
         )}
@@ -161,15 +144,12 @@ export default function Catalog() {
 }
 
 // --- Sub-Component: Tool Card ---
-function ToolCard({ tool, addToCart, checkLogin }) {
+function ToolCard({ tool, addToCart }) {
   const isAvailable = tool.status === "available" || tool.amount > 0;
 
   const handleRequest = () => {
-    // 1. Check Login
-    if (checkLogin()) {
-      // 2. If logged in, Add to Cart
-      addToCart(tool);
-    }
+    addToCart(tool);
+    alert("Tool added to cart!");
   };
 
   return (
