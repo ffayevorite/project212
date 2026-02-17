@@ -1,7 +1,7 @@
 // src/pages/Catalog.jsx
-import { useState, useEffect } from "react";
-import { useCart } from "../contexts/CartContext"; // <--- IMPORT THIS
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+// import { useCart } from "../contexts/CartContext"; // <--- IMPORT THIS
+// import { useNavigate } from "react-router-dom";
 import {
   Search,
   ShoppingBag,
@@ -9,45 +9,57 @@ import {
   Loader2,
   Plus,
   ShoppingCart,
+  MapPin,
+  Filter
 } from "lucide-react";
 
-const Catalog = () => {
+export default function Catalog() {
+  // State
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [error, setError] = useState(null);
 
-  // เรียกใช้ Context
-  const { addToCart } = useCart();
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
 
+  // Call Context
+  // const { addToCart } = useCart();
+  // const navigate = useNavigate();
+  // const checkLogin = () => {
+  //   const token = localStorage.getItem("token");
+  //   if (!token) {
+  //     navigate("/login");
+  //   }
+  // };
+
+
+  // Fetch Data
   useEffect(() => {
     fetchCatalog();
-  }, []);
+  }, [activeCategory, searchTerm]);
 
   const fetchCatalog = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:8000/api/catalog");
-      if (!response.ok) {
-        throw new Error("Failed to fetch catalog");
-      }
+      setError(null);
+      const params = new URLSearchParams();
+
+      if (activeCategory && activeCategory !== 'All') { params.append('category', activeCategory); }
+      if (searchTerm) { params.append('search', searchTerm); }
+
+      const response = await fetch(`http://localhost:8000/api/catalog?${params.toString()}`);
+
+      if (!response.ok) { throw new Error("Failed to fetch catalog"); }
       const data = await response.json();
       setItems(data || []);
+
     } catch (error) {
       console.error("Error fetching catalog:", error.message);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
-
-  const filteredItems = items.filter((item) => {
-    const matchesSearch = item.title
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" || item.catagory === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   const categories = [
     "All",
@@ -71,137 +83,142 @@ const Catalog = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Header Section */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <ShoppingBag className="text-blue-600" />
-              Our Catalog
-            </h1>
-            <div className="flex flex-1 max-w-md gap-2">
-              <div className="relative flex-1">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                  selectedCategory === cat
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+    <div className="min-h-screen bg-gray-50 pb-20 font-sans">
+
+      {/* --- Hero Section --- */}
+      <div className="bg-[#1a237e] text-white px-6 py-12 shadow-md">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-2">Borrow Tools for Your Projects</h2>
+          <p className="text-blue-200 mb-8 text-sm md:text-base">
+            Access professional-grade equipment for your academic and research needs
+          </p>
+
+          {/* {Search Bar} */}
+          <div className="relative max-w-lg">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search for tools..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-lg bg-blue-900/50 border border-blue-700 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            />
           </div>
         </div>
       </div>
 
-      {/* Content Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
-            <p className="text-gray-500">Loading catalog...</p>
-          </div>
-        ) : filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group flex flex-col"
-              >
-                <div className="h-56 bg-gray-100 relative overflow-hidden">
-                  {item.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-300">
-                      <ImageIcon size={48} />
-                    </div>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-white/90 backdrop-blur-sm text-blue-600 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
-                      {item.catagory}
-                    </span>
-                  </div>
-                </div>
+      {/* --- Filter Section --- */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${activeCategory === cat
+                  ? 'bg-blue-700 text-white shadow-md'
+                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-gray-900 line-clamp-2 leading-tight">
-                      {item.title}
-                    </h3>
-                  </div>
+        <p className="text-gray-500 text-sm mb-4">Showing {items.length} tools</p>
 
-                  <div className="mt-auto pt-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase font-semibold">
-                        Available
-                      </p>
-                      <p className="text-xl font-black text-blue-600">
-                        {item.amount.toLocaleString()}{" "}
-                        <span className="text-sm font-normal text-gray-500">
-                          pcs
-                        </span>
-                      </p>
-                    </div>
+        {loading && <div className="text-center py-10 animate-pulse">Loading items...</div>}
+        {error && <div className="text-center py-10 text-red-500">{error}</div>}
 
-                    {/* ปุ่ม Add to Cart ที่เชื่อมกับ Context */}
-                    <button
-                      onClick={() => addToCart(item)}
-                      disabled={item.amount <= 0}
-                      className="bg-gray-900 text-white p-2.5 rounded-xl hover:bg-blue-600 transition-colors shadow-sm group/btn disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {item.amount > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <Plus
-                            size={20}
-                            className="group-hover/btn:rotate-90 transition-transform"
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-xs">Out</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
+        {/* --- Tool Grid --- */}
+        {!loading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map((tool) => (
+              <ToolCard key={tool.id} tool={tool} />
             ))}
           </div>
-        ) : (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-            <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="text-gray-400" size={32} />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900">
-              No items found
-            </h3>
+        )}
+
+        {/* Data not found */}
+        {!loading && !error && items.length === 0 && (
+          <div className="text-center py-20 text-gray-400">
+            <Filter className="w-12 h-12 mx-auto mb-2 opacity-20" />
+            <p>No tools found matching your criteria.</p>
           </div>
         )}
       </div>
+
     </div>
   );
-};
+}
 
-export default Catalog;
+// --- Sub-Component: Tool Card ---
+function ToolCard({ tool }) {
+  const isAvailable = tool.status === 'available' || tool.stock > 0;
+
+  return (
+    <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-gray-100 flex flex-col h-full">
+      {/* {Image Area}*/}
+      <div className="h-48 overflow-hidden bg-gray-100 relative">
+        <img
+          src={tool.image_url}
+          alt={tool.name}
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+        />
+      </div>
+
+      {/* {Content Area} */}
+      <div className="p-5 flex flex-col flex-1">
+
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <span className="text-blue-600 text-xs font-bold uppercase tracking-wider block mb-1">
+              {tool.category || 'General'}
+            </span>
+            <h3 className="font-bold text-gray-900 text-lg leading-tight">{tool.name}</h3>
+          </div>
+
+          {/* {Status Badge} */}
+          <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full
+            ${isAvailable ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+
+            {tool.status}
+          </div>
+        </div>
+
+        <p className="text-gray-500 text-m mb-4 line-clamp-2 flex-1">
+          {tool.description || 'No description provided.'}
+        </p>
+
+        {/* {Location} */}
+        <div className="flex items-center gap-2 text-gray-400 text-xs pt-4 border-t border-gray-100">
+          <MapPin size={14} />
+          <span>{tool.location || 'N/A'}</span>
+        </div>
+
+        <div className="flex justify-between mt-2 items-start">
+          {/* {Condition} */}
+          <span className='font-medium px-2 py-1 text-x'>Stock: {tool.stock}</span>
+
+          {/* {Request} */}
+          {isAvailable ? (
+            <button
+              onClick={() => alert("Submit Send Request!")}
+              className="bg-blue-700 hover:bg-blue-800 text-white text-m font-medium px-4 py-2 rounded-full shadow-md transition-colors"
+            >
+              Request
+            </button>
+          ) : (
+            <button
+              disabled
+              className="bg-gray-200 text-gray-400 text-m font-medium px-4 py-2 rounded-full cursor-not-allowed"
+            >
+              Borrowed
+            </button>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
