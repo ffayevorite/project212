@@ -1,5 +1,5 @@
 // src/pages/Cart.jsx
-import { useCart } from "../contexts/CartContext"; // <--- IMPORT THIS
+import { useCart } from "../contexts/CartContext";
 import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

@@ -27,7 +27,7 @@ export default function CatalogManagement() {
     category: "",
     amount: "",
     image_url: "",
-    status: "active",
+    status: "available",
   });
 
   const categories = [
@@ -48,9 +48,9 @@ export default function CatalogManagement() {
   ];
 
   const statusStyles = {
-    active: "bg-green-100 text-green-700",
+    available: "bg-green-100 text-green-700",
     pending: "bg-yellow-100 text-yellow-700",
-    inactive: "bg-red-100 text-red-600",
+    unavailable: "bg-red-100 text-red-600",
   };
 
   // ================= FETCH =================
@@ -155,7 +155,7 @@ export default function CatalogManagement() {
         category: "",
         amount: "",
         image_url: "",
-        status: "active",
+        status: "available",
       });
     }
     setIsModalOpen(true);
@@ -469,7 +469,7 @@ export default function CatalogManagement() {
                 </label>
 
                 <div className="grid grid-cols-3 gap-2">
-                  {["active", "pending", "inactive"].map((status) => (
+                  {["available", "pending", "unavailable"].map((status) => (
                     <button
                       type="button"
                       key={status}

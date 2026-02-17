@@ -1,26 +1,22 @@
 // src/contexts/CartContext.jsx
-import React, { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useState, useContext, useEffect } from "react";
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  // โหลดข้อมูลจาก LocalStorage เมื่อเปิดเว็บ (เพื่อให้ Refresh แล้วของไม่หาย)
   const [cartItems, setCartItems] = useState(() => {
     const savedCart = localStorage.getItem("cart");
     return savedCart ? JSON.parse(savedCart) : [];
   });
 
-  // บันทึกลง LocalStorage ทุกครั้งที่ตะกร้าเปลี่ยน
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // ฟังก์ชันเพิ่มสินค้า
   const addToCart = (item) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((i) => i.id === item.id);
 
-      // ถ้ามีของชิ้นนี้อยู่แล้ว ให้เพิ่มจำนวน (Check Stock ได้ที่นี่)
       if (existingItem) {
         if (existingItem.quantity >= item.amount) {
           alert("สินค้าหมดสต็อกแล้ว (Maximum available reached)");
@@ -31,7 +27,6 @@ export const CartProvider = ({ children }) => {
         );
       }
 
-      // ถ้ายังไม่มี ให้เพิ่มใหม่โดยเริ่ม quantity = 1
       return [...prevItems, { ...item, quantity: 1 }];
     });
   };
