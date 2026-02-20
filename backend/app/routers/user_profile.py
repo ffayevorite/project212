@@ -23,10 +23,7 @@ app.add_middleware(
 @app.get("/api/users/{user_id}/borrow-history")
 async def get_borrow_history(user_id: str):
     try:
-        # 1. ดึงข้อมูล Profile ของคนที่ล็อกอินอยู่จากตาราง profiles
         user_response = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-        
-        # 2. ดึงประวัติการยืม โดยกรองเอาเฉพาะของ user_id นี้เท่านั้น (.eq("user_id", user_id))
         history_response = supabase.table("borrow_items").select("*").eq("user_id", user_id).execute()
 
         return {
