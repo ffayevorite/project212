@@ -69,7 +69,6 @@ export function Header() {
 
       if (data) {
         setIsAdmin(data.role === "admin");
-        // console.log("role:", data.role);
       }
     } catch (error) {
       console.error("Fetch Error:", error);
@@ -88,7 +87,6 @@ export function Header() {
 
       if (!currentUser) return;
 
-      // ดึงค่าแรก
       const { data } = await supabase
         .from("profiles")
         .select("cmu_verified, role")
@@ -100,7 +98,6 @@ export function Header() {
         setIsAdmin(data.role === "admin");
       }
 
-      // 🔥 Realtime ฟังการ UPDATE
       profileChannel = supabase
         .channel(`profile-${currentUser.id}`)
         .on(
@@ -113,11 +110,7 @@ export function Header() {
           },
           (payload) => {
             console.log("Profile Updated:", payload.new);
-
-            // ✅ handle การเปลี่ยน cmu_verified
             setIsVerified(!!payload.new.cmu_verified);
-
-            // เผื่อ role เปลี่ยนด้วย
             setIsAdmin(payload.new.role === "admin");
           },
         )
@@ -133,11 +126,9 @@ export function Header() {
     };
   }, []);
 
-  // --- 2. Effect หลัก: จัดการ Auth และ Realtime ---
   useEffect(() => {
     let profileSubscription = null;
 
-    // 2.1 เช็ค Session ปัจจุบัน
     const initializeSession = async () => {
       const {
         data: { session },
@@ -146,10 +137,8 @@ export function Header() {
       setUser(currentUser);
 
       if (currentUser) {
-        // ดึงค่าครั้งแรก
         fetchProfileStatus(currentUser.id);
 
-        // 2.2 สมัคร Realtime Listener (ฟังการแก้ข้อมูลในตาราง profiles)
         profileSubscription = supabase
           .channel("public:profiles")
           .on(
@@ -158,10 +147,9 @@ export function Header() {
               event: "UPDATE",
               schema: "public",
               table: "profiles",
-              filter: `id=eq.${currentUser.id}`, // ฟังเฉพาะ ID ของเรา
+              filter: `id=eq.${currentUser.id}`,
             },
             (payload) => {
-              // console.log("Realtime Update!", payload); // Debug
               setIsVerified(payload.new.cmu_verified === true);
             },
           )
@@ -171,7 +159,6 @@ export function Header() {
 
     initializeSession();
 
-    // 2.3 ฟัง Login/Logout Event
     const {
       data: { subscription: authListener },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -187,7 +174,6 @@ export function Header() {
       }
     });
 
-    // Cleanup function
     return () => {
       authListener.unsubscribe();
       if (profileSubscription) supabase.removeChannel(profileSubscription);
@@ -218,8 +204,8 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="flex justify-center">
+          {/* Desktop Nav — hidden on mobile */}
+          <div className="hidden md:flex justify-center">
             {user && (
               <div className="flex space-x-1 items-center bg-gray-50/50 p-1 rounded-xl border border-gray-100">
                 <Link
@@ -252,8 +238,7 @@ export function Header() {
             )}
           </div>
 
-
-          {/* Right Section */}
+          {/* Right Section — desktop profile dropdown */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <div className="relative">
@@ -363,19 +348,19 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile Menu Btn */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile: right side — hamburger or auth buttons */}
+          <div className="md:hidden flex items-center gap-2">
             {!user ? (
               <>
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
                 >
                   Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg font-medium hover:bg-blue-700 transition-all shadow-sm"
+                  className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg font-medium hover:bg-blue-700 transition-all shadow-sm"
                 >
                   Sign up
                 </Link>
@@ -393,109 +378,101 @@ export function Header() {
       </div>
 
       {/* Mobile Menu */}
-      {
-        isMenuOpen && (
-          <div className="md:hidden bg-white border-b border-gray-100 animate-in slide-in-from-top-5">
-            <div className="px-4 pt-2 pb-6 space-y-1">
-              <Link
-                to="/"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-              >
-                <Home size={16} /> Home
-              </Link>
-              <Link
-                to="/catalog"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-              >
-                <LayoutGrid size={16} /> Catalog
-              </Link>
-              <Link
-                to="/cart"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-              >
-                <ShoppingCart size={16} /> Cart
-              </Link>
-
-              <Link
-                to="/setting"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-              >
-                <Settings size={16} /> Settings
-              </Link>
-
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  <LayoutDashboard size={16} /> Admin
-                </Link>
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-b border-gray-100 animate-in slide-in-from-top-5">
+          <div className="px-4 pt-2 pb-6 space-y-1">
+            <Link
+              to="/"
+              onClick={() => setIsMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/")}`}
+            >
+              <Home size={16} /> Home
+            </Link>
+            <Link
+              to="/catalog"
+              onClick={() => setIsMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/catalog")}`}
+            >
+              <LayoutGrid size={16} /> Catalog
+            </Link>
+            <Link
+              to="/cart"
+              onClick={() => setIsMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/cart")}`}
+            >
+              <ShoppingCart size={16} /> Cart
+            </Link>
+            <Link
+              to="/profile"
+              onClick={() => setIsMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/profile")}`}
+            >
+              <User size={16} /> Profile
+            </Link>
+            <Link
+              to="/setting"
+              onClick={() => setIsMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/setting")}`}
+            >
+              <Settings size={16} /> Settings
+              {!isVerified && (
+                <span className="ml-auto w-2 h-2 rounded-full bg-yellow-400"></span>
               )}
+            </Link>
 
-              <div className="border-t border-gray-100 my-2 pt-2">
-                {user ? (
-                  <>
-                    <Link
-                      to="/setting"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      <div className="relative">
-                        <div
-                          className={`absolute -bottom-1 -right-1 rounded-full border-2 border-white p-[2px] ${isVerified ? "bg-green-500" : "bg-yellow-400"}`}
-                        >
-                          {isVerified ? (
-                            <ShieldCheck size={8} className="text-white" />
-                          ) : (
-                            <AlertCircle size={8} className="text-white" />
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">{user.email}</p>
-                        <p
-                          className={`text-xs ${isVerified ? "text-green-600" : "text-yellow-600"}`}
-                        >
-                          {isVerified ? "Verified" : "Unverified"}
-                        </p>
-                      </div>
-                    </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setIsMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/admin")}`}
+              >
+                <LayoutDashboard size={16} /> Admin
+              </Link>
+            )}
 
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-red-600 hover:bg-red-50 mt-1"
-                    >
-                      <LogOut size={20} /> Logout
-                    </button>
-                  </>
-                ) : (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <Link
-                      to="/login"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="text-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
-                    >
-                      Sign in
-                    </Link>
-                    <Link
-                      to="/register"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
-                    >
-                      Sign up
-                    </Link>
+            <div className="border-t border-gray-100 my-2 pt-2">
+              {/* User info row */}
+              <div className="flex items-center gap-3 px-3 py-3">
+                <div className="relative">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 overflow-hidden border border-gray-200">
+                    {user?.user_metadata?.avatar_url ? (
+                      <img
+                        src={user.user_metadata.avatar_url}
+                        alt="User"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User size={18} />
+                    )}
                   </div>
-                )}
+                  <div
+                    className={`absolute -bottom-1 -right-1 rounded-full border-2 border-white p-[2px] ${isVerified ? "bg-green-500" : "bg-yellow-400"}`}
+                  >
+                    {isVerified ? (
+                      <ShieldCheck size={8} className="text-white" />
+                    ) : (
+                      <AlertCircle size={8} className="text-white" />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{user?.email}</p>
+                  <p className={`text-xs ${isVerified ? "text-green-600" : "text-yellow-600"}`}>
+                    {isVerified ? "Verified" : "Unverified"}
+                  </p>
+                </div>
               </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-red-600 hover:bg-red-50 mt-1"
+              >
+                <LogOut size={20} /> Logout
+              </button>
             </div>
           </div>
-        )
-      }
-    </div >
+        </div>
+      )}
+    </div>
   );
 }
