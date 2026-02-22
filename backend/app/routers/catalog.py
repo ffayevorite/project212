@@ -5,7 +5,7 @@ from app.database import get_supabase
 router = APIRouter()
 supabase = get_supabase()
 
-@router.get("/")
+@router.get("")
 async def get_catalog(
     category: Optional[str] = None,
     search: Optional[str] = None,

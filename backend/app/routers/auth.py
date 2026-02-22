@@ -210,18 +210,9 @@ async def send_otp(
 
 
 
-import os
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from supabase import create_client, Client
-# อย่าลืม import pydantic models และ dependency อื่นๆ ด้วยนะครับ
-
-# 1. Setup Admin Client (ไว้นอกฟังก์ชัน หรือไฟล์ config แยก)
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") # ย้ำ: ต้องใช้ Service Role Key
-
-# สร้าง Client สำหรับ Admin โดยเฉพาะ
-supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 @router.post("/verify-otp")
 async def verify_otp(
@@ -262,6 +253,7 @@ async def verify_otp(
 
     # 3. Update Profile Status
     # *** ไฮไลท์: ใช้ supabase_admin เพื่อข้าม RLS Policy ***
+    from app.database import supabase_admin
     try:
         update_response = supabase_admin.table("profiles") \
             .update({"cmu_verified": True,"cmu_mail": data.email}) \

@@ -24,8 +24,8 @@ import Dashboard from "../components/Dashboard";
 import UsersView from "../components/UsersView";
 import AdminCatalog from "../components/CatalogManagement";
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+export default function Admin() {
+  const [activeTab, setActiveTab] = useState("catalog");
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
@@ -86,23 +86,24 @@ export default function AdminDashboard() {
           </h1>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <SidebarItem
+          {/* <SidebarItem
             icon={<LayoutDashboard size={20} />}
             label="Dashboard"
             active={activeTab === "dashboard"}
             onClick={() => setActiveTab("dashboard")}
+          /> */}
+
+          <SidebarItem
+            icon={<ShoppingBag size={20} />}
+            label="Catalog"
+            active={activeTab === "catalog"}
+            onClick={() => setActiveTab("catalog")}
           />
           <SidebarItem
             icon={<Users size={20} />}
             label="Users"
             active={activeTab === "users"}
             onClick={() => setActiveTab("users")}
-          />
-          <SidebarItem
-            icon={<ShoppingBag size={20} />}
-            label="Catalog"
-            active={activeTab === "catalog"}
-            onClick={() => setActiveTab("catalog")}
           />
         </nav>
         <div className="p-4 border-t border-gray-100">

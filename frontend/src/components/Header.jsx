@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   AlertCircle,
   Settings,
+  LayoutDashboard,
   ShoppingCart,
 } from "lucide-react";
 
@@ -28,18 +29,13 @@ export function Header() {
   useEffect(() => {
     checkLogin();
   }, []);
-  const checkLogin = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setIsLogin(false);
-    } else {
-      setIsLogin(true);
-    }
+  const checkLogin = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    setIsLogin(!!session);
   };
-
-  // --- 1. ฟังก์ชันดึงค่าจาก DB ---Settings
   const fetchProfileStatus = async (userId) => {
-    // console.log("Fetching status for:", userId); // Debug
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -79,6 +75,63 @@ export function Header() {
       console.error("Fetch Error:", error);
     }
   };
+  useEffect(() => {
+    let profileChannel = null;
+
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (!currentUser) return;
+
+      // ดึงค่าแรก
+      const { data } = await supabase
+        .from("profiles")
+        .select("cmu_verified, role")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (data) {
+        setIsVerified(!!data.cmu_verified);
+        setIsAdmin(data.role === "admin");
+      }
+
+      // 🔥 Realtime ฟังการ UPDATE
+      profileChannel = supabase
+        .channel(`profile-${currentUser.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${currentUser.id}`,
+          },
+          (payload) => {
+            console.log("Profile Updated:", payload.new);
+
+            // ✅ handle การเปลี่ยน cmu_verified
+            setIsVerified(!!payload.new.cmu_verified);
+
+            // เผื่อ role เปลี่ยนด้วย
+            setIsAdmin(payload.new.role === "admin");
+          },
+        )
+        .subscribe();
+    };
+
+    init();
+
+    return () => {
+      if (profileChannel) {
+        supabase.removeChannel(profileChannel);
+      }
+    };
+  }, []);
 
   // --- 2. Effect หลัก: จัดการ Auth และ Realtime ---
   useEffect(() => {
@@ -257,18 +310,26 @@ export function Header() {
                       onClick={() => setIsProfileOpen(false)}
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                     >
-                      <User size={16} /> Profile Settings
+                      <User size={16} /> Profile
+                    </Link>
+                    <Link
+                      to="/setting"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Settings size={16} /> Settings
                       {!isVerified && (
                         <span className="ml-auto w-2 h-2 rounded-full bg-yellow-400"></span>
                       )}
                     </Link>
+
                     {isAdmin && (
                       <Link
                         to="/admin"
                         onClick={() => setIsProfileOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <Settings size={16} /> Admin Settings
+                        <LayoutDashboard size={16} /> Admin Settings
                       </Link>
                     )}
 
@@ -337,13 +398,21 @@ export function Header() {
               <ShoppingCart size={16} /> Cart
             </Link>
 
+            <Link
+              to="/setting"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Settings size={16} /> Settings
+            </Link>
+
             {isAdmin && (
               <Link
                 to="/admin"
                 onClick={() => setIsMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
               >
-                <Settings size={16} /> Admin
+                <LayoutDashboard size={16} /> Admin
               </Link>
             )}
 
@@ -351,7 +420,7 @@ export function Header() {
               {user ? (
                 <>
                   <Link
-                    to="/profile"
+                    to="/setting"
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
                   >
@@ -371,7 +440,7 @@ export function Header() {
                       <p
                         className={`text-xs ${isVerified ? "text-green-600" : "text-yellow-600"}`}
                       >
-                        {isVerified ? "Verified Student" : "Verify Account"}
+                        {isVerified ? "Verified" : "Unverified"}
                       </p>
                     </div>
                   </Link>

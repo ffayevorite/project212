@@ -23,10 +23,10 @@ export default function CatalogManagement() {
 
   const [formData, setFormData] = useState({
     title: "",
-    description: "",
     category: "",
-    amount: "",
     image_url: "",
+    quantity_available: 0,
+    quantity_borrowed: 0,
     status: "available",
   });
 
@@ -106,7 +106,7 @@ export default function CatalogManagement() {
 
     const payload = {
       ...formData,
-      amount: formData.amount || 0,
+      quantity_available: formData.quantity_available || 0,
     };
 
     let error;
@@ -151,9 +151,9 @@ export default function CatalogManagement() {
       setCurrentId(null);
       setFormData({
         title: "",
-        description: "",
         category: "",
-        amount: "",
+        quantity_available: 0,
+        quantity_borrowed: 0,
         image_url: "",
         status: "available",
       });
@@ -229,7 +229,8 @@ export default function CatalogManagement() {
                     <th className="px-6 py-4">Image</th>
                     <th className="px-6 py-4">Title</th>
                     <th className="px-6 py-4">Category</th>
-                    <th className="px-6 py-4">Amount</th>
+                    <th className="px-6 py-4">Quantity Available</th>
+                    <th className="px-6 py-4">Quantity Borrowed</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
@@ -252,7 +253,10 @@ export default function CatalogManagement() {
                       <td className="px-6 py-4 font-semibold">{item.title}</td>
                       <td className="px-6 py-4">{item.category}</td>
                       <td className="px-6 py-4 font-mono">
-                        {item.amount?.toLocaleString()}
+                        {item.quantity_available?.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 font-mono">
+                        {item.quantity_borrowed?.toLocaleString()}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -309,7 +313,10 @@ export default function CatalogManagement() {
                           {item.category}
                         </span>
                         <span className="font-mono">
-                          {item.amount?.toLocaleString()}
+                          {item.quantity_available?.toLocaleString()}
+                        </span>
+                        <span className="font-mono">
+                          {item.quantity_borrowed?.toLocaleString()}
                         </span>
                         <span
                           className={`px-2 py-1 rounded-full ${
@@ -408,7 +415,7 @@ export default function CatalogManagement() {
                 />
               </div>
 
-              {/* Category + Amount */}
+              {/* Category + quantity_available */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -432,13 +439,16 @@ export default function CatalogManagement() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Amount
+                    Quantity Available
                   </label>
                   <input
                     type="number"
-                    value={formData.amount}
+                    value={formData.quantity_available}
                     onChange={(e) =>
-                      setFormData({ ...formData, amount: e.target.value })
+                      setFormData({
+                        ...formData,
+                        quantity_available: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="0"
@@ -446,19 +456,21 @@ export default function CatalogManagement() {
                 </div>
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
+                  Quantity Borrowed
                 </label>
-                <textarea
-                  rows="3"
-                  value={formData.description}
+                <input
+                  type="number"
+                  value={formData.quantity_borrowed}
                   onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                    setFormData({
+                      ...formData,
+                      quantity_borrowed: e.target.value,
+                    })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                  placeholder="Details about the item..."
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="0"
                 />
               </div>
 

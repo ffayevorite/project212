@@ -21,13 +21,13 @@ const CheckBadge = () => (
   </span>
 );
 
-export default function ProfileSettings() {
+export default function Settings() {
   const navigate = useNavigate();
 
   // --- States ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false); // โหลดตอนอัปรูป
+  const [uploading, setUploading] = useState(false);
   const [user, setUser] = useState(null);
   const [provider, setProvider] = useState("email");
   const [avatarUrl, setAvatarUrl] = useState(null); // URL รูปโปรไฟล์
@@ -102,8 +102,6 @@ export default function ProfileSettings() {
           phone_number: data.phone_number || "",
           backup_email: data.backup_email || "",
           cmu_mail: data.cmu_mail || "",
-          faculty: data.faculty || "",
-          department: data.department || "",
           year_level: data.year_level || "",
         });
 
@@ -220,7 +218,7 @@ export default function ProfileSettings() {
       if (!session) throw new Error("No active session");
 
       await axios.post(
-        "http://localhost:8000/api/auth/send-otp",
+        "/api/auth/send-otp",
         { email: cmuEmail },
         {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -252,7 +250,7 @@ export default function ProfileSettings() {
       if (!session) throw new Error("No active session");
 
       await axios.post(
-        "http://localhost:8000/api/auth/verify-otp",
+        "/api/auth/verify-otp",
         { email: cmuEmail, code: otpCode },
         {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -432,37 +430,6 @@ export default function ProfileSettings() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Faculty
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.faculty}
-                    onChange={(e) =>
-                      setProfile({ ...profile, faculty: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Engineering"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.department}
-                    onChange={(e) =>
-                      setProfile({ ...profile, department: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Computer Engineering"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Phone Number
                   </label>
                   <input
@@ -473,20 +440,6 @@ export default function ProfileSettings() {
                     }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="08x-xxx-xxxx"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Backup Email
-                  </label>
-                  <input
-                    type="email"
-                    value={profile.backup_email}
-                    onChange={(e) =>
-                      setProfile({ ...profile, backup_email: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="secondary@email.com"
                   />
                 </div>
               </div>

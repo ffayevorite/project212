@@ -37,9 +37,7 @@ export default function Catalog() {
       // Debug URL
       // console.log("Fetching:", `http://localhost:8000/api/catalog?${params.toString()}`);
 
-      const response = await fetch(
-        `http://localhost:8000/api/catalog?${params.toString()}`,
-      );
+      const response = await fetch(`/api/catalog?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch catalog");
