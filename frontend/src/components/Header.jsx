@@ -245,7 +245,7 @@ export function Header() {
                 to="/admin"
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${isActive("/admin")}`}
               >
-                <Settings size={16} /> Admin
+                <LayoutDashboard size={16} /> Admin
               </Link>
             )}
           </div>
@@ -329,7 +329,7 @@ export function Header() {
                         onClick={() => setIsProfileOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <LayoutDashboard size={16} /> Admin Settings
+                        <LayoutDashboard size={16} /> Admin
                       </Link>
                     )}
 
