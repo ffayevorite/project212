@@ -185,7 +185,7 @@ const RegisterPage = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <a
-              href="http://localhost:8000/api/auth/google/url"
+              href="/api/auth/google/url"
               className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors text-sm font-medium"
             >
               <img
