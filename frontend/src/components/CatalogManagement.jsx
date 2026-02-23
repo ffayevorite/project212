@@ -31,6 +31,7 @@ export default function CatalogManagement() {
   });
 
   const categories = [
+    "All",
     "Computer",
     "Laptop",
     "Monitor",
@@ -38,12 +39,15 @@ export default function CatalogManagement() {
     "Mouse",
     "Printer",
     "Projector",
-    "Networking Equipment",
-    "Microcontroller / IoT",
+    "Networking",
+    "Microcontroller",
+    "RaspberryPi",
+    "Arduino",
     "Cable",
     "Adapter",
-    "Storage Device",
+    "StorageDevice",
     "Document",
+    "SoftwareLicense",
     "Other",
   ];
 
