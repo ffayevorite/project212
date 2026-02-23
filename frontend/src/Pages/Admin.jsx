@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   ShoppingBag,
+  FileCheck,
   LogOut,
   Search,
   ShieldCheck,
@@ -23,6 +24,7 @@ import {
 import Dashboard from "../components/Dashboard";
 import UsersView from "../components/UsersView";
 import AdminCatalog from "../components/CatalogManagement";
+import Request from "../components/ApproveRequest";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("catalog");
@@ -105,6 +107,12 @@ export default function Admin() {
             active={activeTab === "users"}
             onClick={() => setActiveTab("users")}
           />
+          <SidebarItem
+            icon={<FileCheck size={20} />}
+            label="Request"
+            active={activeTab === "request"}
+            onClick={() => setActiveTab("request")}
+          />
         </nav>
         <div className="p-4 border-t border-gray-100">
           <button
@@ -140,6 +148,12 @@ export default function Admin() {
             >
               <ShoppingBag size={20} />
             </button>
+            <button
+              onClick={() => setActiveTab("request")}
+              className={`p-2 rounded ${activeTab === "request" ? "bg-blue-100 text-blue-600" : "bg-white"}`}
+            >
+              <FileCheck size={20} />
+            </button>
           </div>
         </div>
 
@@ -147,6 +161,7 @@ export default function Admin() {
         {activeTab === "dashboard" && <Dashboard />}
         {activeTab === "users" && <UsersView />}
         {activeTab === "catalog" && <AdminCatalog />}
+        {activeTab === "request" && <Request />}
       </main>
     </div>
   );
