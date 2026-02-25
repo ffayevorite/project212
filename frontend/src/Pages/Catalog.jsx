@@ -14,6 +14,7 @@ export default function Catalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [categories, setCategories] = useState(["All"]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -40,10 +41,10 @@ export default function Catalog() {
       }
 
       const response = await fetch(`/api/catalog?${params.toString()}`);
-
       if (!response.ok) {
         throw new Error("Failed to fetch catalog");
       }
+
       const data = await response.json();
       setItems(data || []);
     } catch (error) {
@@ -54,26 +55,42 @@ export default function Catalog() {
     }
   };
 
-  const categories = [
-    "All",
-    "Computer",
-    "Laptop",
-    "Monitor",
-    "Keyboard",
-    "Mouse",
-    "Printer",
-    "Projector",
-    "Networking",
-    "Microcontroller",
-    "RaspberryPi",
-    "Arduino",
-    "Cable",
-    "Adapter",
-    "StorageDevice",
-    "Document",
-    "SoftwareLicense",
-    "Other",
-  ];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/catalog/categories');
+        if (!response.ok) throw new Error("Failed to fetch categories");
+        const data = await response.json();
+        
+        if (data.categories) {
+          setCategories(["All", ...data.categories]);
+        }
+      } catch (err) {
+        console.error("Category fetch error:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+  // const categories = [
+  //   "All",
+  //   "Computer",
+  //   "Laptop",
+  //   "Monitor",
+  //   "Keyboard",
+  //   "Mouse",
+  //   "Printer",
+  //   "Projector",
+  //   "Networking",
+  //   "Microcontroller",
+  //   "RaspberryPi",
+  //   "Arduino",
+  //   "Cable",
+  //   "Adapter",
+  //   "StorageDevice",
+  //   "Document",
+  //   "SoftwareLicense",
+  //   "Other",
+  // ];
 
   // arrow scroll
   const handleScroll = () => {
@@ -90,7 +107,7 @@ export default function Catalog() {
     handleScroll();
     window.addEventListener("resize", handleScroll);
     return () => window.removeEventListener("resize", handleScroll);
-  }, []);
+  }, [categories]);
 
   const scroll = (direction) => {
     if (scrollContainerRef.current) {
