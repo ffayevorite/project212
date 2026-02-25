@@ -208,7 +208,7 @@ function ToolCard({ tool }) {
       <div className="h-48 overflow-hidden bg-gray-100 relative">
         <img
           src={tool.image_url || "https://placehold.co/400x250?text=No+Image"}
-          alt={tool.name}
+          alt={tool.title}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
         />
       </div>
@@ -221,9 +221,9 @@ function ToolCard({ tool }) {
             </span>
             <h3
               className="font-bold text-gray-900 text-lg leading-tight line-clamp-2"
-              title={tool.name}
+              title={tool.title}
             >
-              {tool.name}
+              {tool.title}
             </h3>
           </div>
 
@@ -255,7 +255,7 @@ function ToolCard({ tool }) {
 
           {isAvailable ? (
             <button
-              onClick={() => alert(`Submit Request for: ${tool.name}`)}
+              onClick={() => alert(`Submit Request for: ${tool.title}`)}
               className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-full shadow-md transition-colors active:scale-95"
             >
               Request
