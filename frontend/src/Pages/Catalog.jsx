@@ -71,26 +71,6 @@ export default function Catalog() {
     };
     fetchCategories();
   }, []);
-  // const categories = [
-  //   "All",
-  //   "Computer",
-  //   "Laptop",
-  //   "Monitor",
-  //   "Keyboard",
-  //   "Mouse",
-  //   "Printer",
-  //   "Projector",
-  //   "Networking",
-  //   "Microcontroller",
-  //   "RaspberryPi",
-  //   "Arduino",
-  //   "Cable",
-  //   "Adapter",
-  //   "StorageDevice",
-  //   "Document",
-  //   "SoftwareLicense",
-  //   "Other",
-  // ];
 
   // arrow scroll
   const handleScroll = () => {
@@ -221,7 +201,7 @@ export default function Catalog() {
 
 // --- Sub-Component: Tool Card ---
 function ToolCard({ tool }) {
-  const isAvailable = tool.status === "available" || tool.stock > 0;
+  const isAvailable = tool.status === "available" || tool.quantity_available > 0;
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-gray-100 flex flex-col h-full">
@@ -270,7 +250,7 @@ function ToolCard({ tool }) {
 
         <div className="flex justify-between mt-3 items-center">
           <span className="font-bold text-gray-700 bg-gray-100 border border-gray-200 px-3 py-1 rounded-lg text-xs shadow-sm">
-            Stock: {tool.stock}
+            Stock: {tool.quantity_available}
           </span>
 
           {isAvailable ? (
