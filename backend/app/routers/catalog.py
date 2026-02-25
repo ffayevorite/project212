@@ -28,7 +28,7 @@ async def get_catalog(category: Optional[str] = None, search: Optional[str] = No
             query = query.eq("category", category)
 
         if search:
-            query = query.ilike("name", f"%{search}%")
+            query = query.ilike("title", f"%{search}%")
 
         response = query.order("id", desc=True).execute()
         
