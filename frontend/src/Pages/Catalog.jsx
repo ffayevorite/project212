@@ -216,11 +216,11 @@ function ToolCard({ tool }) {
       <div className="p-5 flex flex-col flex-1">
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1 pr-2">
-            <span className="text-blue-600 text-[11px] font-bold uppercase tracking-wider block mb-1">
+            <span className="pt-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider block mb-1">
               {tool.category || "General"}
             </span>
             <h3
-              className="font-bold text-gray-900 text-lg leading-tight line-clamp-2"
+              className="pt-1 pb-7 font-bold text-gray-900 text-lg leading-tight line-clamp-2"
               title={tool.title}
             >
               {tool.title}
@@ -237,15 +237,6 @@ function ToolCard({ tool }) {
           >
             {tool.status}
           </div>
-        </div>
-
-        <p className="text-gray-500 text-sm mb-4 line-clamp-2 flex-1">
-          {tool.description || "No description provided."}
-        </p>
-
-        <div className="flex items-center gap-2 text-gray-400 text-xs pt-4 border-t border-gray-100">
-          <MapPin size={14} />
-          <span>{tool.location || "N/A"}</span>
         </div>
 
         <div className="flex justify-between mt-3 items-center">
