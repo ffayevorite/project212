@@ -88,12 +88,6 @@ export default function Admin() {
           </h1>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          {/* <SidebarItem
-            icon={<LayoutDashboard size={20} />}
-            label="Dashboard"
-            active={activeTab === "dashboard"}
-            onClick={() => setActiveTab("dashboard")}
-          /> */}
 
           <SidebarItem
             icon={<ShoppingBag size={20} />}
@@ -131,22 +125,16 @@ export default function Admin() {
           <h1 className="text-xl font-bold text-gray-900">AdminPanel</h1>
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`p-2 rounded ${activeTab === "dashboard" ? "bg-blue-100 text-blue-600" : "bg-white"}`}
+              onClick={() => setActiveTab("catalog")}
+              className={`p-2 rounded ${activeTab === "catalog" ? "bg-blue-100 text-blue-600" : "bg-white"}`}
             >
-              <LayoutDashboard size={20} />
+              <ShoppingBag size={20} />
             </button>
             <button
               onClick={() => setActiveTab("users")}
               className={`p-2 rounded ${activeTab === "users" ? "bg-blue-100 text-blue-600" : "bg-white"}`}
             >
               <Users size={20} />
-            </button>
-            <button
-              onClick={() => setActiveTab("catalog")}
-              className={`p-2 rounded ${activeTab === "catalog" ? "bg-blue-100 text-blue-600" : "bg-white"}`}
-            >
-              <ShoppingBag size={20} />
             </button>
             <button
               onClick={() => setActiveTab("request")}
@@ -158,7 +146,6 @@ export default function Admin() {
         </div>
 
         {/* Dynamic Content */}
-        {activeTab === "dashboard" && <Dashboard />}
         {activeTab === "users" && <UsersView />}
         {activeTab === "catalog" && <AdminCatalog />}
         {activeTab === "request" && <Request />}

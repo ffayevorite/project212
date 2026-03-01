@@ -8,6 +8,7 @@ import {
   User,
   LogOut,
   GraduationCap,
+  Wrench,
   LayoutGrid,
   ChevronDown,
   ShieldCheck,
@@ -231,7 +232,7 @@ export function Header() {
                     to="/admin"
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${isActive("/admin")}`}
                   >
-                    <LayoutDashboard size={16} /> Admin
+                    <Wrench size={16} /> Admin
                   </Link>
                 )}
               </div>
@@ -310,16 +311,6 @@ export function Header() {
                         <span className="ml-auto w-2 h-2 rounded-full bg-yellow-400"></span>
                       )}
                     </Link>
-
-                    {isAdmin && (
-                      <Link
-                        to="/admin"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        <LayoutDashboard size={16} /> Admin
-                      </Link>
-                    )}
 
                     <button
                       onClick={handleLogout}
@@ -402,6 +393,14 @@ export function Header() {
             >
               <ShoppingCart size={16} /> Cart
             </Link>
+            {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/admin")}`}
+                  >
+                    <Wrench size={16} /> Admin
+                  </Link>
+                )}
             <Link
               to="/profile"
               onClick={() => setIsMenuOpen(false)}
@@ -419,16 +418,6 @@ export function Header() {
                 <span className="ml-auto w-2 h-2 rounded-full bg-yellow-400"></span>
               )}
             </Link>
-
-            {isAdmin && (
-              <Link
-                to="/admin"
-                onClick={() => setIsMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive("/admin")}`}
-              >
-                <LayoutDashboard size={16} /> Admin
-              </Link>
-            )}
 
             <div className="border-t border-gray-100 my-2 pt-2">
               {/* User info row */}
